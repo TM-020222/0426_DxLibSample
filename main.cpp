@@ -47,113 +47,23 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 	//WaitKey();				// キー入力待ち
 
-	//四角の位置
-	int x = GAME_WIDTH / 2;
-	int y = GAME_HEIGHT / 2;
-
-	//正負(速度)
-	int i = 16;
-	int j = 16;
-
-	int speed = 1;
-	int xspeed = speed;
-	int yspeed = speed;
-
-	//半径
-	int radius = 100;
-
-	//初手端かの確認
-	int z = 1;
-
-	//四角の大きさ
-	int width = 32;
-	int height = 32;
-
 	SetDrawScreen(DX_SCREEN_BACK);
 
 	while (1)
 	{
 		//キーが押されたとき
-		if (CheckHitKeyAll() != 0)
+		/*if (CheckHitKeyAll() != 0)
 		{
 			break;
-		}
+		}*/
 
 		//メッセージを受け取り続ける
-		if (ProcessMessage() != 0)
-		{
-			break;
-		}
+		if (ProcessMessage() != 0) { break; }
 
-		if (ClearDrawScreen() != 0)
-			break;
+		//画面消去
+		if (ClearDrawScreen() != 0)	break;
 		
-		/*if (x >= GAME_WIDTH - width)
-			i *= -1;
-		if (y >= GAME_HEIGHT - height)
-			j *= -1;
-		if (x <= 0 && y <= 0 && z == 0)
-			z = 1;
-		else if (x <= 0 && y <= 0)
-		{
-			i *= -1;
-			j *= -1;
-		}
-		else if (x <= 0)
-			i *= -1;
-		else if (y <= 0)
-			j *= -1;*/
-
-		if (x >= GAME_WIDTH - radius)
-			i *= -1;
-		if (y >= GAME_HEIGHT - radius)
-			j *= -1;
-		if (x - radius <= 0 && y - radius <= 0 && z == 0)
-			z = 1;
-		else if (x - radius <= 0 && y - radius <= 0)
-		{
-			i *= -1;
-			j *= -1;
-		}
-		else if (x - radius <= 0)
-			i *= -1;
-		else if (y - radius <= 0)
-			j *= -1;
 		
-		/*if(x < 0 || x + width > GAME_WIDTH)
-		{
-			xspeed = -xspeed;
-			if (xspeed > 0) xspeed++;
-			else if (xspeed < 0) xspeed--;
-		}
-		if(y < 0 || y + height > GAME_HEIGHT)
-		{
-			yspeed = -yspeed;
-			if (yspeed > 0) yspeed++;
-			else if (yspeed < 0) yspeed--;
-		}*/
-		
-
-		/*DrawBox(
-			x, y, x + width, y + height,
-			GetColor(255, 0, 0),	//色取得
-			true					//塗りつぶし
-		);*/
-
-		DrawCircle
-		(
-			x, y, radius,
-			GetColor(0, 255, 0),
-			FALSE, 5
-		);
-		
-		x+=i;
-		y+=j;
-		
-		/*
-		x += xspeed;
-		y += yspeed;
-		*/
 		ScreenFlip();	//ダブルバッファリングした画面を描画;
 	}
 
