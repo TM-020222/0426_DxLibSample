@@ -1,5 +1,7 @@
 //ヘッダーファイルの読み込み
-#include "DxLib.h"	//DxLibを使うときに必要
+#include "DxLib.h"		//DxLibを使うときに必要
+#include "keyboard.h"	//キーボードの処理
+
 #define GAME_TITLE "ゲームタイトル"
 #define GAME_WIDTH 1280
 #define GAME_HEIGHT 720
@@ -49,26 +51,56 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 	SetDrawScreen(DX_SCREEN_BACK);
 
+	//円の中心点
+	int X = GAME_WIDTH / 2;
+	int Y = GAME_HEIGHT / 2;
+
+	//円の半径
+	int radius = 50;
+
+	//速度
+	int spd = 4;
+
 	while (1)
 	{
 		//キーが押されたとき
-		/*if (CheckHitKeyAll() != 0)
-		{
-			break;
-		}*/
+		/*if (CheckHitKeyAll() != 0) { break; }*/
 
 		//メッセージを受け取り続ける
 		if (ProcessMessage() != 0) { break; }
 
 		//画面消去
-		if (ClearDrawScreen() != 0)	break;
+		if (ClearDrawScreen() != 0) break;
 		
+		//キーボード入力の更新
+		AllKeyUpdate();
+
+		//キー入力
+		if (KeyDown(KEY_INPUT_UP) == TRUE)
+			Y -= spd;
+		if (KeyDown(KEY_INPUT_DOWN) == TRUE)
+			Y += spd;
+		if (KeyDown(KEY_INPUT_LEFT) == TRUE)
+			X -= spd;
+		if (KeyDown(KEY_INPUT_RIGHT) == TRUE)
+			X += spd;
+
+		if (X < radius)
+			X = radius;
+		if (Y < radius)
+			Y = radius;
+		if (X > GAME_WIDTH - radius)
+			X = GAME_WIDTH - radius;
+		if (Y > GAME_HEIGHT - radius)
+			Y = GAME_HEIGHT - radius;
+
+		DrawCircle(X, Y, radius, GetColor(255, 255, 0), TRUE);
 		
 		ScreenFlip();	//ダブルバッファリングした画面を描画;
 	}
 
 	
-	DxLib_End();				// ＤＸライブラリ使用の終了処理
+	//DxLib_End();				// ＤＸライブラリ使用の終了処理
 
 	return 0;				// ソフトの終了 
 }

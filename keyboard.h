@@ -18,7 +18,7 @@ struct KEYBOARD
 extern KEYBOARD keyboard;
 
 //プロトタイプ宣言
-extern VOID KeyAllUpdate(VOID);//すべてのキーの情報を取得する
+extern VOID AllKeyUpdate(VOID);//すべてのキーの情報を取得する
 extern BOOL KeyDown(int KEY_INPUT_);
 extern BOOL KeyUp(int KEY_INPUT_);
 extern BOOL KeyClick(int KEY_INPUT_);
