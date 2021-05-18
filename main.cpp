@@ -39,7 +39,7 @@ int fadeOutCntMax = fadeTimeMax;	//フェードアウトのカウンタMAX
 //フェードイン
 int fadeInCntInit = fadeTimeMax;	//初期値
 int fadeInCnt = fadeInCntInit;		//フェードインのカウンタ
-int fadeInCntMax = fadeTimeMax;				//フェードインのカウンタMAX 0?
+int fadeInCntMax = 0;				//フェードインのカウンタMAX 0?
 
 //プロトタイプ宣言
 VOID Title(VOID);		//タイトル画面
@@ -402,7 +402,7 @@ VOID ChangeDraw(VOID)
 	//フェードイン
 	if (IsFadeIn == TRUE)
 	{
-		SetDrawBlendMode(DX_BLENDMODE_ALPHA, ((float)fadeInCnt / fadeInCntMax) * 255);	//0-255
+		SetDrawBlendMode(DX_BLENDMODE_ALPHA, ((float)fadeInCnt / fadeInCntInit) * 255);	//0-255
 	}
 
 	//フェードアウト
