@@ -178,6 +178,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		if (KeyDown(KEY_INPUT_RIGHT) == TRUE)
 			X += spd;
 
+		//上限突破阻止
 		if (X < radius)
 			X = radius;
 		if (Y < radius)
@@ -186,6 +187,29 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 			X = GAME_WIDTH - radius;
 		if (Y > GAME_HEIGHT - radius)
 			Y = GAME_HEIGHT - radius;
+
+		//スピードアップ
+		if (KeyClick(KEY_INPUT_1) == TRUE)
+			spd++;
+
+		//スピードダウン
+		if (KeyClick(KEY_INPUT_2) == TRUE)
+			spd--;
+
+		//サイズアップ
+		if (KeyClick(KEY_INPUT_3) == TRUE)
+			radius++;
+
+		//サイズダウン
+		if (KeyClick(KEY_INPUT_4) == TRUE)
+			radius--;
+
+		//スピードマイナス阻止
+		if (spd < 0)
+			spd = 0;
+
+		DrawString(0, 16, "SpeedUp:[1],SpeedDown:[2]", GetColor(0, 0, 0));
+		DrawString(0, 32, "SizeUp:[3],SizeDown:[4]", GetColor(0, 0, 0));
 
 		DrawCircle(X, Y, radius, GetColor(255, 255, 0), TRUE);
 		
@@ -417,7 +441,7 @@ VOID ChangeDraw(VOID)
 	//半透明終了
 	SetDrawBlendMode(DX_BLENDMODE_NOBLEND, 0);
 
-	DrawString(0, 16, "切り替え画面", GetColor(0, 0, 0));
+	DrawString(0, 48, "切り替え画面", GetColor(0, 0, 0));
 	return;
 }
 
