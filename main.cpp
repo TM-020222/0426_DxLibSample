@@ -3,10 +3,29 @@
 #include "keyboard.h"	//キーボードの処理
 #include "FPS.h"		//FPSの処理
 
+//キャラクタの構造体
+typedef struct CHARACTOR
+{
+	int handle = -1;		//画像のハンドル(管理番号)
+	char path[255];			//画像の場所(パス)
+	int x;					//X位置
+	int y;					//Y位置
+	int width;				//幅
+	int height;				//高さ
+	int speed = 1;			//移動速度
+
+	RECT coll;				//当たり判定の領域(四角)
+	BOOL IsDraw = FALSE;	//画像が描画できる？
+}CHARA;
+
+//グローバル変数
 //シーンを管理する変数
 GAME_SCENE GameScene;		//現在のゲームのシーン
 GAME_SCENE OldGameScene;	//前回のゲームのシーン
 GAME_SCENE NextGameScene;	// 次 のゲームのシーン
+
+//プレイヤー
+CHARA player;
 
 //画面の切り替え
 BOOL IsFadeOut = FALSE;	//フェードアウト
@@ -89,19 +108,40 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 	SetDrawScreen(DX_SCREEN_BACK);
 
-	//円の中心点
-	int X = GAME_WIDTH / 2;
-	int Y = GAME_HEIGHT / 2;
 
-	//円の半径
-	int radius = 50;
-	int radius2 = radius;
 
 	//速度
 	int spd = 4;
 
 	//最初のシーンは、タイトル画面から
 	GameScene = GAME_SCENE_TITLE;
+
+	//ゲーム全体の初期化
+
+	//プレイヤーの画像を読み込み
+	strcpyDx(player.path, TEXT(".\\image\\player.png"));
+	player.handle = LoadGraph(player.path);	//画像の読み込み
+
+	if (player.handle == -1)
+	{
+		MessageBox(
+			GetMainWindowHandle(),			//メッセージのウィンドウハンドル
+			TEXT(player.path),				//メッセージ本文
+			TEXT("画像読み込みエラー！"),	//メッセージタイトル
+			MB_OK);							//ボタン
+
+		DxLib_End();		//強制終了
+		return -1;
+	}
+
+	//画像の幅と高さを取得
+	GetGraphSize(player.handle, &player.width, &player.height);
+
+	//プレイヤーを初期化
+	player.x = GAME_WIDTH / 2 - player.width / 2;		//中央寄せ
+	player.y = GAME_HEIGHT / 2 - player.height / 2;		//中央寄せ
+	player.speed = 5;									//移動速度
+	player.IsDraw = TRUE;								//描画できる
 
 	while (1)
 	{
@@ -157,70 +197,26 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 			}
 		}
 
-		//キー入力
-		if (KeyDown(KEY_INPUT_UP) == TRUE)
-			Y -= spd;
-		if (KeyDown(KEY_INPUT_DOWN) == TRUE)
-			Y += spd;
-		if (KeyDown(KEY_INPUT_LEFT) == TRUE)
-			X -= spd;
-		if (KeyDown(KEY_INPUT_RIGHT) == TRUE)
-			X += spd;
+		
 
-		//上限突破阻止
-		if (X < radius)
-			X = radius;
-		if (Y < radius)
-			Y = radius;
-		if (X > GAME_WIDTH - radius)
-			X = GAME_WIDTH - radius;
-		if (Y > GAME_HEIGHT - radius)
-			Y = GAME_HEIGHT - radius;
-
-		//スピードアップ
-		if (KeyClick(KEY_INPUT_1) == TRUE)
-			spd++;
-
-		//スピードダウン
-		if (KeyClick(KEY_INPUT_2) == TRUE)
-			spd--;
-
-		//サイズアップ
-		if (KeyClick(KEY_INPUT_3) == TRUE)
-			radius++;
-
-		//サイズダウン
-		if (KeyClick(KEY_INPUT_4) == TRUE)
-			radius--;
-
-		//スピードマイナス阻止
-		if (spd < 0)
-			spd = 0;
-
-		//波(途中)
-		if (KeyDown(KEY_INPUT_SPACE) == TRUE)
-		{
-			DrawCircle(X, Y, radius2, GetColor(0, 0, 0), FALSE);
-			radius2 += spd;
-		}
-		if (KeyUp(KEY_INPUT_SPACE) == TRUE)
-			radius2 = radius;
-		if (radius2 >= GAME_WIDTH)
-			radius2 = radius;
+		
 
 		DrawString(0, 16, "SpeedUp:[1],SpeedDown:[2]", GetColor(0, 0, 0));
 		DrawString(0, 32, "SizeUp:[3],SizeDown:[4]", GetColor(0, 0, 0));
 
-		DrawCircle(X, Y, radius, GetColor(255, 255, 0), TRUE);
-
-		//FPS値を描画
+		//FPSを描画
 		FPSDraw();
+
+		
 
 		//FPS値を待つ
 		FPSWait();
 		
 		ScreenFlip();	//ダブルバッファリングした画面を描画;
 	}
+
+	//終わるときの処理
+	DeleteGraph(player.handle);	//画像をメモリ上から削除
 
 	DxLib_End();				// ＤＸライブラリ使用の終了処理
 
@@ -310,6 +306,11 @@ VOID PlayProc(VOID)
 /// </summary>
 VOID PlayDraw(VOID)
 {
+	if (player.IsDraw == TRUE)
+	{
+		DrawGraph(player.x, player.y, player.handle, TRUE);
+	}
+
 	DrawString(0, 0, "プレイ画面", GetColor(0, 0, 0));
 	return;
 }
