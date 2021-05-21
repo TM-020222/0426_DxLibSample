@@ -1,23 +1,7 @@
-//ヘッダーファイルの読み込み
-#include "DxLib.h"		//DxLibを使うときに必要
+//ヘッダファイル読み込み
+#include"game.h"		//ゲーム全体のヘッダファイル
 #include "keyboard.h"	//キーボードの処理
 #include "FPS.h"		//FPSの処理
-
-#define GAME_TITLE		"ゲームタイトル"
-#define GAME_WIDTH		1280
-#define GAME_HEIGHT		720
-#define GAME_COLOR		32
-#define GAME_ICON_ID	333		//ゲームのアイコンのID
-#define GAME_WINDOW_BAR	0
-
-//列挙型
-enum GAME_SCENE
-{
-	GAME_SCENE_TITLE,
-	GAME_SCENE_PLAY,
-	GAME_SCENE_END,
-	GAME_SCENE_CHANGE
-};	//ゲームのシーン
 
 //シーンを管理する変数
 GAME_SCENE GameScene;		//現在のゲームのシーン
@@ -227,10 +211,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		DrawString(0, 16, "SpeedUp:[1],SpeedDown:[2]", GetColor(0, 0, 0));
 		DrawString(0, 32, "SizeUp:[3],SizeDown:[4]", GetColor(0, 0, 0));
 
+		DrawCircle(X, Y, radius, GetColor(255, 255, 0), TRUE);
+
 		//FPS値を描画
 		FPSDraw();
-
-		DrawCircle(X, Y, radius, GetColor(255, 255, 0), TRUE);
 
 		//FPS値を待つ
 		FPSWait();
