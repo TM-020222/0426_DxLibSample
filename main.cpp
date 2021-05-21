@@ -1,6 +1,7 @@
 //ヘッダーファイルの読み込み
 #include "DxLib.h"		//DxLibを使うときに必要
 #include "keyboard.h"	//キーボードの処理
+#include "FPS.h"		//FPSの処理
 
 #define GAME_TITLE		"ゲームタイトル"
 #define GAME_WIDTH		1280
@@ -110,6 +111,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 	//円の半径
 	int radius = 50;
+	int radius2 = radius;
 
 	//速度
 	int spd = 4;
@@ -130,6 +132,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		
 		//キーボード入力の更新
 		AllKeyUpdate();
+
+		//FPS値の更新
+		FPSUpdate();
 
 		//ESCキーで強制終了
 		if (KeyClick(KEY_INPUT_ESCAPE) == TRUE) break;
@@ -208,16 +213,32 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		if (spd < 0)
 			spd = 0;
 
+		//波(途中)
+		if (KeyDown(KEY_INPUT_SPACE) == TRUE)
+		{
+			DrawCircle(X, Y, radius2, GetColor(0, 0, 0), FALSE);
+			radius2 += spd;
+		}
+		if (KeyUp(KEY_INPUT_SPACE) == TRUE)
+			radius2 = radius;
+		if (radius2 >= GAME_WIDTH)
+			radius2 = radius;
+
 		DrawString(0, 16, "SpeedUp:[1],SpeedDown:[2]", GetColor(0, 0, 0));
 		DrawString(0, 32, "SizeUp:[3],SizeDown:[4]", GetColor(0, 0, 0));
 
+		//FPS値を描画
+		FPSDraw();
+
 		DrawCircle(X, Y, radius, GetColor(255, 255, 0), TRUE);
+
+		//FPS値を待つ
+		FPSWait();
 		
 		ScreenFlip();	//ダブルバッファリングした画面を描画;
 	}
 
-	
-	//DxLib_End();				// ＤＸライブラリ使用の終了処理
+	DxLib_End();				// ＤＸライブラリ使用の終了処理
 
 	return 0;				// ソフトの終了 
 }
