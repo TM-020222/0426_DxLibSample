@@ -28,6 +28,9 @@ GAME_SCENE NextGameScene;	// 次 のゲームのシーン
 //プレイヤー
 CHARA player;
 
+//ゴール
+CHARA goal;
+
 //画面の切り替え
 BOOL IsFadeOut = FALSE;	//フェードアウト
 BOOL IsFadeIn  = FALSE;	//フェードイン
@@ -63,7 +66,8 @@ VOID Change(VOID);		//切り替え画面
 VOID ChangeProc(VOID);	//切り替え画面(処理)
 VOID ChangeDraw(VOID);	//切り替え画面(描画)
 
-VOID CollUpdate(CHARA* chara);	//当たり判定の領域を更新
+VOID CollUpdatePlayer(CHARA* chara);	//当たり判定の領域を更新
+VOID CollUpdateGoal(CHARA* chara);	//当たり判定の領域を更新
 
 VOID ChangeScene(GAME_SCENE scene);	//シーン切り替え
 
@@ -92,7 +96,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	SetWindowStyleMode(GAME_WINDOW_BAR);
 	//ウィンドウバーの状態
 
-	SetWaitVSyncFlag(FALSE);
+	SetWaitVSyncFlag(TRUE);
 	//ディスプレイの垂直同期を有効にする
 
 	SetAlwaysRunFlag(TRUE);
@@ -108,9 +112,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	//WaitKey();				// キー入力待ち
 
 	SetDrawScreen(DX_SCREEN_BACK);
-
-	//速度
-	int spd = 4;
 
 	//最初のシーンは、タイトル画面から
 	GameScene = GAME_SCENE_TITLE;
@@ -137,13 +138,41 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	GetGraphSize(player.handle, &player.width, &player.height);
 
 	//当たり判定を更新する
-	CollUpdate(&player);	//プレイヤーの当たり判定のアドレス
+	CollUpdatePlayer(&player);	//プレイヤーの当たり判定のアドレス
+
+	//ゴールの画像を読み込み
+	strcpyDx(goal.path, TEXT(".\\image\\goal.png"));
+	goal.handle = LoadGraph(goal.path);	//画像の読み込み
+
+	if (goal.handle == -1)
+	{
+		MessageBox(
+			GetMainWindowHandle(),			//メッセージのウィンドウハンドル
+			TEXT(goal.path),				//メッセージ本文
+			TEXT("画像読み込みエラー！"),	//メッセージタイトル
+			MB_OK);							//ボタン
+
+		DxLib_End();		//強制終了
+		return -1;
+	}
+
+	//画像の幅と高さを取得
+	GetGraphSize(goal.handle, &goal.width, &goal.height);
+
+	//当たり判定を更新する
+	CollUpdateGoal(&goal);	//ゴールの当たり判定のアドレス
 
 	//プレイヤーを初期化
 	player.x = GAME_WIDTH / 2 - player.width / 2;		//中央寄せ
 	player.y = GAME_HEIGHT / 2 - player.height / 2;		//中央寄せ
-	player.speed = 5;									//移動速度
+	player.speed = 500;									//移動速度
 	player.IsDraw = TRUE;								//描画できる
+
+	//ゴールを初期化
+	goal.x = GAME_WIDTH - goal.width;			//右端寄せ
+	goal.y = GAME_HEIGHT / 2 - goal.height / 2;		//中央寄せ
+	goal.speed = 500;									//移動速度
+	goal.IsDraw = TRUE;								//描画できる
 
 	while (1)
 	{
@@ -210,6 +239,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 	//終わるときの処理
 	DeleteGraph(player.handle);	//画像をメモリ上から削除
+
+	//終わるときの処理
+	DeleteGraph(goal.handle);	//画像をメモリ上から削除
 
 	DxLib_End();				// ＤＸライブラリ使用の終了処理
 
@@ -293,16 +325,17 @@ VOID PlayProc(VOID)
 	}
 
 	if (KeyDown(KEY_INPUT_UP) == TRUE)
-		player.y -= player.speed;
+		player.y = player.y - player.speed * fps.DeltaTime;
 	if (KeyDown(KEY_INPUT_DOWN) == TRUE)
-		player.y += player.speed;
+		player.y = player.y + player.speed * fps.DeltaTime;
 	if (KeyDown(KEY_INPUT_LEFT) == TRUE)
-		player.x -= player.speed;
+		player.x = player.x - player.speed * fps.DeltaTime;
 	if (KeyDown(KEY_INPUT_RIGHT) == TRUE)
-		player.x += player.speed;
+		player.x = player.x + player.speed * fps.DeltaTime;
 	
 	//当たり判定を更新する
-	CollUpdate(&player);
+	CollUpdatePlayer(&player);
+	CollUpdateGoal(&goal);
 
 	return;
 }
@@ -323,6 +356,21 @@ VOID PlayDraw(VOID)
 		{
 			//四角を描画
 			DrawBox(player.coll.left, player.coll.top, player.coll.right, player.coll.bottom,
+				GetColor(255, 0, 0), FALSE);
+		}
+	}
+
+	//ゴールを描画
+	if (goal.IsDraw == TRUE)
+	{
+		//画像を描画
+		DrawGraph(goal.x, goal.y, goal.handle, TRUE);
+
+		//デバッグの時は、当たり判定の領域を描画
+		if (GAME_DEBUG == TRUE)
+		{
+			//四角を描画
+			DrawBox(goal.coll.left, goal.coll.top, goal.coll.right, goal.coll.bottom,
 				GetColor(255, 0, 0), FALSE);
 		}
 	}
@@ -471,7 +519,7 @@ VOID ChangeDraw(VOID)
 /// 当たり判定の領域更新
 /// </summary>
 /// <param name="chara">当たり判定の領域</param>
-VOID CollUpdate(CHARA* chara)
+VOID CollUpdatePlayer(CHARA* chara)
 {
 	chara->coll.left = chara->x;
 	chara->coll.top = chara->y;
@@ -480,3 +528,18 @@ VOID CollUpdate(CHARA* chara)
 
 	return;
 }
+
+/// <summary>
+/// 当たり判定の領域更新
+/// </summary>
+/// <param name="chara">当たり判定の領域</param>
+VOID CollUpdateGoal(CHARA* chara)
+{
+	chara->coll.left = chara->x;
+	chara->coll.top = chara->y;
+	chara->coll.right = chara->x + chara->width;
+	chara->coll.bottom = chara->y + chara->height;
+
+	return;
+}
+
