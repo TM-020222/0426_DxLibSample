@@ -92,7 +92,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	SetWindowStyleMode(GAME_WINDOW_BAR);
 	//ウィンドウバーの状態
 
-	SetWaitVSyncFlag(TRUE);
+	SetWaitVSyncFlag(FALSE);
 	//ディスプレイの垂直同期を有効にする
 
 	SetAlwaysRunFlag(TRUE);

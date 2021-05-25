@@ -92,7 +92,7 @@ VOID FPSWait(VOID)
 	}
 
 	//‚’¼“¯Šú‚ğOFF‚É‚µ‚Ä‚¢‚é‚©?
-	if (GetWaitVSyncFlag == FALSE)
+	if (GetWaitVSyncFlag() == FALSE)
 	{
 		//FPSÅ‘å’l‚Å‚Í‚È‚¢‚Æ‚«
 		if (fps.Value < GAME_FPS_MAX)
@@ -102,7 +102,8 @@ VOID FPSWait(VOID)
 			if (waitTime > 0
 				&& waitTime <= 1000.0f / fps.Value)
 			{
-				fps.Count++;
+				//fps.Count++;
+				fps.Value++;
 			}
 			else
 			{
