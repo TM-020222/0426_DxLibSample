@@ -12,6 +12,7 @@ typedef struct CHARACTOR
 	int y;					//Y位置
 	int width;				//幅
 	int height;				//高さ
+
 	int speed = 1;			//移動速度
 
 	RECT coll;				//当たり判定の領域(四角)
@@ -62,9 +63,9 @@ VOID Change(VOID);		//切り替え画面
 VOID ChangeProc(VOID);	//切り替え画面(処理)
 VOID ChangeDraw(VOID);	//切り替え画面(描画)
 
+VOID CollUpdate(CHARA* chara);	//当たり判定の領域を更新
+
 VOID ChangeScene(GAME_SCENE scene);	//シーン切り替え
-
-
 
 // プログラムは WinMain から始まります
 //Windowsのプログラミング方法 = (WinAPI)で動いている
@@ -108,8 +109,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 	SetDrawScreen(DX_SCREEN_BACK);
 
-
-
 	//速度
 	int spd = 4;
 
@@ -136,6 +135,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 	//画像の幅と高さを取得
 	GetGraphSize(player.handle, &player.width, &player.height);
+
+	//当たり判定を更新する
+	CollUpdate(&player);	//プレイヤーの当たり判定のアドレス
 
 	//プレイヤーを初期化
 	player.x = GAME_WIDTH / 2 - player.width / 2;		//中央寄せ
@@ -197,17 +199,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 			}
 		}
 
-		
-
-		
-
-		DrawString(0, 16, "SpeedUp:[1],SpeedDown:[2]", GetColor(0, 0, 0));
-		DrawString(0, 32, "SizeUp:[3],SizeDown:[4]", GetColor(0, 0, 0));
-
 		//FPSを描画
 		FPSDraw();
-
-		
 
 		//FPS値を待つ
 		FPSWait();
@@ -295,9 +288,22 @@ VOID PlayProc(VOID)
 		//シーンを切り替え
 		//次のシーンの初期化をここで行うと楽
 
-		//プレイ画面に切り替え
+		//エンド画面に切り替え
 		ChangeScene(GAME_SCENE_END);
 	}
+
+	if (KeyDown(KEY_INPUT_UP) == TRUE)
+		player.y -= player.speed;
+	if (KeyDown(KEY_INPUT_DOWN) == TRUE)
+		player.y += player.speed;
+	if (KeyDown(KEY_INPUT_LEFT) == TRUE)
+		player.x -= player.speed;
+	if (KeyDown(KEY_INPUT_RIGHT) == TRUE)
+		player.x += player.speed;
+	
+	//当たり判定を更新する
+	CollUpdate(&player);
+
 	return;
 }
 
@@ -306,9 +312,19 @@ VOID PlayProc(VOID)
 /// </summary>
 VOID PlayDraw(VOID)
 {
+	//プレイヤーを描画
 	if (player.IsDraw == TRUE)
 	{
+		//画像を描画
 		DrawGraph(player.x, player.y, player.handle, TRUE);
+
+		//デバッグの時は、当たり判定の領域を描画
+		if (GAME_DEBUG == TRUE)
+		{
+			//四角を描画
+			DrawBox(player.coll.left, player.coll.top, player.coll.right, player.coll.bottom,
+				GetColor(255, 0, 0), FALSE);
+		}
 	}
 
 	DrawString(0, 0, "プレイ画面", GetColor(0, 0, 0));
@@ -451,3 +467,16 @@ VOID ChangeDraw(VOID)
 	return;
 }
 
+/// <summary>
+/// 当たり判定の領域更新
+/// </summary>
+/// <param name="chara">当たり判定の領域</param>
+VOID CollUpdate(CHARA* chara)
+{
+	chara->coll.left = chara->x;
+	chara->coll.top = chara->y;
+	chara->coll.right = chara->x + chara->width;
+	chara->coll.bottom = chara->y + chara->height;
+
+	return;
+}
