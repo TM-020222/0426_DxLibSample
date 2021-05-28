@@ -67,7 +67,9 @@ VOID ChangeProc(VOID);	//切り替え画面(処理)
 VOID ChangeDraw(VOID);	//切り替え画面(描画)
 
 VOID CollUpdatePlayer(CHARA* chara);	//当たり判定の領域を更新
-VOID CollUpdateGoal(CHARA* chara);	//当たり判定の領域を更新
+VOID CollUpdateGoal(CHARA* chara);		//当たり判定の領域を更新
+
+BOOL CubeCollision(RECT A, RECT B);		//矩形と矩形の当たり判定
 
 VOID ChangeScene(GAME_SCENE scene);	//シーン切り替え
 
@@ -137,9 +139,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	//画像の幅と高さを取得
 	GetGraphSize(player.handle, &player.width, &player.height);
 
-	//当たり判定を更新する
-	CollUpdatePlayer(&player);	//プレイヤーの当たり判定のアドレス
-
 	//ゴールの画像を読み込み
 	strcpyDx(goal.path, TEXT(".\\image\\goal.png"));
 	goal.handle = LoadGraph(goal.path);	//画像の読み込み
@@ -159,9 +158,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	//画像の幅と高さを取得
 	GetGraphSize(goal.handle, &goal.width, &goal.height);
 
-	//当たり判定を更新する
-	CollUpdateGoal(&goal);	//ゴールの当たり判定のアドレス
-
 	//プレイヤーを初期化
 	player.x = GAME_WIDTH / 2 - player.width / 2;		//中央寄せ
 	player.y = GAME_HEIGHT / 2 - player.height / 2;		//中央寄せ
@@ -173,6 +169,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	goal.y = GAME_HEIGHT / 2 - goal.height / 2;		//中央寄せ
 	goal.speed = 500;									//移動速度
 	goal.IsDraw = TRUE;								//描画できる
+
+	//当たり判定を更新する
+	CollUpdatePlayer(&player);	//プレイヤーの当たり判定のアドレス
+	CollUpdateGoal(&goal);	//ゴールの当たり判定のアドレス
 
 	while (1)
 	{
@@ -315,7 +315,7 @@ VOID Play(VOID)
 VOID PlayProc(VOID)
 {
 	//エンドシーンへ切り替える
-	if (KeyClick(KEY_INPUT_RETURN) == TRUE)
+	if (KeyClick(KEY_INPUT_RETURN) == TRUE && GAME_DEBUG == TRUE)
 	{
 		//シーンを切り替え
 		//次のシーンの初期化をここで行うと楽
@@ -323,6 +323,8 @@ VOID PlayProc(VOID)
 		//エンド画面に切り替え
 		ChangeScene(GAME_SCENE_END);
 	}
+
+	
 
 	if (KeyDown(KEY_INPUT_UP) == TRUE)
 		player.y = player.y - player.speed * fps.DeltaTime;
@@ -337,6 +339,11 @@ VOID PlayProc(VOID)
 	CollUpdatePlayer(&player);
 	CollUpdateGoal(&goal);
 
+	if (CubeCollision(player.coll, goal.coll) == TRUE)	//プレイヤーがゴールにあたったとき
+	{
+		ChangeScene(GAME_SCENE_END);					//エンド画面に切り替え
+		return;											//処理を強制終了
+	}
 	return;
 }
 
@@ -543,3 +550,19 @@ VOID CollUpdateGoal(CHARA* chara)
 	return;
 }
 
+BOOL CubeCollision(RECT A,RECT B)
+{
+	if (A.left<B.right			//矩形Aの左辺X座標 < 矩形Bの右辺X座標かつ
+		&& A.right>B.left		//矩形Aの右辺X座標 > 矩形Bの左辺X座標かつ
+		&& A.top<B.bottom		//矩形Aの上辺Y座標 < 矩形Bの下辺Y座標かつ
+		&& A.bottom>B.top)		//矩形Aの下辺Y座標 > 矩形Bの上辺Y座標
+	{
+		//当たっているとき
+		return TRUE;
+	}
+	else
+	{
+		//当たっていないとき
+		return FALSE;
+	}
+}
