@@ -19,6 +19,22 @@ typedef struct CHARACTOR
 	BOOL IsDraw = FALSE;	//画像が描画できる？
 }CHARA;
 
+//動画の構造体
+struct MOVIE
+{
+	int handle = -1;		//動画のハンドル(管理番号)
+	char path[255];			//動画の場所(パス)
+
+	int x;					//X位置
+	int y;					//Y位置
+	int width;				//幅
+	int height;				//高さ
+
+	int volume = 255;		//ボリューム 0-255
+
+	//BOOL IsDraw = FALSE;	//動画が描画できる？
+};
+
 //グローバル変数
 //シーンを管理する変数
 GAME_SCENE GameScene;		//現在のゲームのシーン
@@ -30,6 +46,9 @@ CHARA player;
 
 //ゴール
 CHARA goal;
+
+//プレイ画面の背景
+MOVIE playmovie;
 
 //画面の切り替え
 BOOL IsFadeOut = FALSE;	//フェードアウト
@@ -123,6 +142,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	//プレイヤーの画像を読み込み
 	strcpyDx(player.path, TEXT(".\\image\\player.png"));
 	player.handle = LoadGraph(player.path);	//画像の読み込み
+	//ゴールの画像を読み込み
+	strcpyDx(goal.path, TEXT(".\\image\\goal.png"));
+	goal.handle = LoadGraph(goal.path);	//画像の読み込み
+	//プレイ動画の背景読み込み
+	strcpyDx(playmovie.path, TEXT(".\\movie\\playmovie.mp4"));
+	playmovie.handle = LoadGraph(playmovie.path);	//動画の読み込み
 
 	if (player.handle == -1)
 	{
@@ -135,14 +160,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		DxLib_End();		//強制終了
 		return -1;
 	}
-
-	//画像の幅と高さを取得
-	GetGraphSize(player.handle, &player.width, &player.height);
-
-	//ゴールの画像を読み込み
-	strcpyDx(goal.path, TEXT(".\\image\\goal.png"));
-	goal.handle = LoadGraph(goal.path);	//画像の読み込み
-
 	if (goal.handle == -1)
 	{
 		MessageBox(
@@ -154,9 +171,24 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		DxLib_End();		//強制終了
 		return -1;
 	}
+	if (playmovie.handle == -1)
+	{
+		MessageBox(
+			GetMainWindowHandle(),			//メッセージのウィンドウハンドル
+			TEXT(playmovie.path),				//メッセージ本文
+			TEXT("動画読み込みエラー！"),	//メッセージタイトル
+			MB_OK);							//ボタン
+
+		DxLib_End();		//強制終了
+		return -1;
+	}
 
 	//画像の幅と高さを取得
+	GetGraphSize(player.handle, &player.width, &player.height);
+	//画像の幅と高さを取得
 	GetGraphSize(goal.handle, &goal.width, &goal.height);
+	//動画の幅と高さを取得
+	GetGraphSize(playmovie.handle, &playmovie.width, &playmovie.height);
 
 	//プレイヤーを初期化
 	player.x = GAME_WIDTH / 2 - player.width / 2;		//中央寄せ
@@ -165,10 +197,16 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	player.IsDraw = TRUE;								//描画できる
 
 	//ゴールを初期化
-	goal.x = GAME_WIDTH - goal.width;			//右端寄せ
+	goal.x = GAME_WIDTH - goal.width;				//右端寄せ
 	goal.y = GAME_HEIGHT / 2 - goal.height / 2;		//中央寄せ
-	goal.speed = 500;									//移動速度
+	goal.speed = 500;								//移動速度
 	goal.IsDraw = TRUE;								//描画できる
+
+	//動画を初期化
+	//playmovie.x = 0;			//左端寄せ
+	//playmovie.y = 0;			//左端寄せ
+	playmovie.volume = 255;		//音量最大
+	//playmovie.IsDraw = TRUE;	//描画できる
 
 	//当たり判定を更新する
 	CollUpdatePlayer(&player);	//プレイヤーの当たり判定のアドレス
@@ -239,9 +277,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 	//終わるときの処理
 	DeleteGraph(player.handle);	//画像をメモリ上から削除
-
-	//終わるときの処理
 	DeleteGraph(goal.handle);	//画像をメモリ上から削除
+	DeleteGraph(playmovie.handle);	//動画をメモリ上から削除
 
 	DxLib_End();				// ＤＸライブラリ使用の終了処理
 
@@ -352,6 +389,18 @@ VOID PlayProc(VOID)
 /// </summary>
 VOID PlayDraw(VOID)
 {
+	//背景動画を描画
+
+	//もし、動画が再生されていないとき
+	if (GetMovieStateToGraph(playmovie.handle) == 0)
+	{
+		//再生する
+		SeekMovieToGraph(playmovie.handle, 0);	//シークバーを最初に戻す
+		PlayMovieToGraph(playmovie.handle);		//動画を再生
+	}
+	//動画を描画
+	DrawExtendGraph(0, 0, GAME_WIDTH, GAME_HEIGHT, playmovie.handle, TRUE);
+
 	//プレイヤーを描画
 	if (player.IsDraw == TRUE)
 	{
@@ -382,7 +431,7 @@ VOID PlayDraw(VOID)
 		}
 	}
 
-	DrawString(0, 0, "プレイ画面", GetColor(0, 0, 0));
+	DrawString(0, 0, "プレイ画面", GetColor(255, 255, 255));
 	return;
 }
 
@@ -518,7 +567,7 @@ VOID ChangeDraw(VOID)
 	//半透明終了
 	SetDrawBlendMode(DX_BLENDMODE_NOBLEND, 0);
 
-	DrawString(0, 48, "切り替え画面", GetColor(0, 0, 0));
+	DrawString(0, 16, "切り替え画面", GetColor(128, 128, 128));
 	return;
 }
 
