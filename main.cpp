@@ -85,6 +85,10 @@ VOID Change(VOID);		//切り替え画面
 VOID ChangeProc(VOID);	//切り替え画面(処理)
 VOID ChangeDraw(VOID);	//切り替え画面(描画)
 
+BOOL GameLoad(VOID);	//ゲームデータのロード
+
+VOID GameInit(VOID);	//ゲームの初期化
+
 VOID CollUpdatePlayer(CHARA* chara);	//当たり判定の領域を更新
 VOID CollUpdateGoal(CHARA* chara);		//当たり判定の領域を更新
 
@@ -139,78 +143,16 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 	//ゲーム全体の初期化
 
-	//プレイヤーの画像を読み込み
-	strcpyDx(player.path, TEXT(".\\image\\player.png"));
-	player.handle = LoadGraph(player.path);	//画像の読み込み
-	//ゴールの画像を読み込み
-	strcpyDx(goal.path, TEXT(".\\image\\goal.png"));
-	goal.handle = LoadGraph(goal.path);	//画像の読み込み
-	//プレイ動画の背景読み込み
-	strcpyDx(playmovie.path, TEXT(".\\movie\\playmovie.mp4"));
-	playmovie.handle = LoadGraph(playmovie.path);	//動画の読み込み
-
-	if (player.handle == -1)
+	//ゲームの読み込み
+	if (!GameLoad())
 	{
-		MessageBox(
-			GetMainWindowHandle(),			//メッセージのウィンドウハンドル
-			TEXT(player.path),				//メッセージ本文
-			TEXT("画像読み込みエラー！"),	//メッセージタイトル
-			MB_OK);							//ボタン
-
-		DxLib_End();		//強制終了
-		return -1;
-	}
-	if (goal.handle == -1)
-	{
-		MessageBox(
-			GetMainWindowHandle(),			//メッセージのウィンドウハンドル
-			TEXT(goal.path),				//メッセージ本文
-			TEXT("画像読み込みエラー！"),	//メッセージタイトル
-			MB_OK);							//ボタン
-
-		DxLib_End();		//強制終了
-		return -1;
-	}
-	if (playmovie.handle == -1)
-	{
-		MessageBox(
-			GetMainWindowHandle(),			//メッセージのウィンドウハンドル
-			TEXT(playmovie.path),				//メッセージ本文
-			TEXT("動画読み込みエラー！"),	//メッセージタイトル
-			MB_OK);							//ボタン
-
-		DxLib_End();		//強制終了
-		return -1;
+		//データの読み込みに失敗したとき
+		DxLib_End();	//DxLib終了
+		return -1;		//強制終了
 	}
 
-	//画像の幅と高さを取得
-	GetGraphSize(player.handle, &player.width, &player.height);
-	//画像の幅と高さを取得
-	GetGraphSize(goal.handle, &goal.width, &goal.height);
-	//動画の幅と高さを取得
-	GetGraphSize(playmovie.handle, &playmovie.width, &playmovie.height);
-
-	//プレイヤーを初期化
-	player.x = GAME_WIDTH / 2 - player.width / 2;		//中央寄せ
-	player.y = GAME_HEIGHT / 2 - player.height / 2;		//中央寄せ
-	player.speed = 500;									//移動速度
-	player.IsDraw = TRUE;								//描画できる
-
-	//ゴールを初期化
-	goal.x = GAME_WIDTH - goal.width;				//右端寄せ
-	goal.y = GAME_HEIGHT / 2 - goal.height / 2;		//中央寄せ
-	goal.speed = 500;								//移動速度
-	goal.IsDraw = TRUE;								//描画できる
-
-	//動画を初期化
-	//playmovie.x = 0;			//左端寄せ
-	//playmovie.y = 0;			//左端寄せ
-	playmovie.volume = 255;		//音量最大
-	//playmovie.IsDraw = TRUE;	//描画できる
-
-	//当たり判定を更新する
-	CollUpdatePlayer(&player);	//プレイヤーの当たり判定のアドレス
-	CollUpdateGoal(&goal);	//ゴールの当たり判定のアドレス
+	//ゲームの初期化
+	GameInit();
 
 	while (1)
 	{
@@ -286,6 +228,92 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 }
 
 /// <summary>
+/// ゲームデータを読み込み
+/// </summary>
+/// <returns>読み込めたらTRUE,読み込めなかったらFALSE</returns>
+BOOL GameLoad(VOID)
+{
+	//プレイヤーの画像を読み込み
+	strcpyDx(player.path, TEXT(".\\image\\player.png"));
+	player.handle = LoadGraph(player.path);	//画像の読み込み
+	//ゴールの画像を読み込み
+	strcpyDx(goal.path, TEXT(".\\image\\goal.png"));
+	goal.handle = LoadGraph(goal.path);	//画像の読み込み
+	//プレイ動画の背景読み込み
+	strcpyDx(playmovie.path, TEXT(".\\movie\\playmovie.mp4"));
+	playmovie.handle = LoadGraph(playmovie.path);	//動画の読み込み
+
+	if (player.handle == -1)
+	{
+		MessageBox(
+			GetMainWindowHandle(),			//メッセージのウィンドウハンドル
+			TEXT(player.path),				//メッセージ本文
+			TEXT("画像読み込みエラー！"),	//メッセージタイトル
+			MB_OK);							//ボタン
+
+		return FALSE;
+	}
+	if (goal.handle == -1)
+	{
+		MessageBox(
+			GetMainWindowHandle(),			//メッセージのウィンドウハンドル
+			TEXT(goal.path),				//メッセージ本文
+			TEXT("画像読み込みエラー！"),	//メッセージタイトル
+			MB_OK);							//ボタン
+
+		return FALSE;
+	}
+	if (playmovie.handle == -1)
+	{
+		MessageBox(
+			GetMainWindowHandle(),			//メッセージのウィンドウハンドル
+			TEXT(playmovie.path),				//メッセージ本文
+			TEXT("動画読み込みエラー！"),	//メッセージタイトル
+			MB_OK);							//ボタン
+
+		return FALSE;
+	}
+
+	//画像の幅と高さを取得
+	GetGraphSize(player.handle, &player.width, &player.height);
+	//画像の幅と高さを取得
+	GetGraphSize(goal.handle, &goal.width, &goal.height);
+	//動画の幅と高さを取得
+	GetGraphSize(playmovie.handle, &playmovie.width, &playmovie.height);
+
+	return TRUE;
+}
+
+/// <summary>
+/// ゲームデータを初期化
+/// </summary>
+/// <param name=""></param>
+VOID GameInit(VOID)
+{
+	//プレイヤーを初期化
+	player.x = GAME_WIDTH / 2 - player.width / 2;		//中央寄せ
+	player.y = GAME_HEIGHT / 2 - player.height / 2;		//中央寄せ
+	player.speed = 500;									//移動速度
+	player.IsDraw = TRUE;								//描画できる
+
+	//ゴールを初期化
+	goal.x = GAME_WIDTH - goal.width;				//右端寄せ
+	goal.y = GAME_HEIGHT / 2 - goal.height / 2;		//中央寄せ
+	goal.speed = 500;								//移動速度
+	goal.IsDraw = TRUE;								//描画できる
+
+	//動画を初期化
+	//playmovie.x = 0;			//左端寄せ
+	//playmovie.y = 0;			//左端寄せ
+	playmovie.volume = 255;		//音量最大
+	//playmovie.IsDraw = TRUE;	//描画できる
+
+	//当たり判定を更新する
+	CollUpdatePlayer(&player);	//プレイヤーの当たり判定のアドレス
+	//CollUpdateGoal(&goal);	//ゴールの当たり判定のアドレス
+}
+
+/// <summary>
 /// シーンを切り替える関数
 /// </summary>
 /// <param name="scene">シーン</param>
@@ -319,6 +347,9 @@ VOID TitleProc(VOID)
 	{
 		//シーンを切り替え
 		//次のシーンの初期化をここで行うと楽
+
+		//ゲームの初期化
+		GameInit();
 
 		//プレイ画面に切り替え
 		ChangeScene(GAME_SCENE_PLAY);
