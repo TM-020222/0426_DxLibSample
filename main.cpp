@@ -1,3 +1,4 @@
+#define _CRT_SECURE_NO_WARNINGS
 //ヘッダファイル読み込み
 #include"game.h"		//ゲーム全体のヘッダファイル
 #include "keyboard.h"	//キーボードの処理
@@ -35,6 +36,16 @@ struct MOVIE
 	//BOOL IsDraw = FALSE;	//動画が描画できる？
 };
 
+//音楽の構造体
+struct AUDIO
+{
+	int handle = -1;		//動画のハンドル(管理番号)
+	char path[255];			//動画の場所(パス)
+
+	int volume = -1;		//ボリューム 0-255
+	int playtype = -1;		//BGM or SE
+};
+
 //グローバル変数
 //シーンを管理する変数
 GAME_SCENE GameScene;		//現在のゲームのシーン
@@ -46,6 +57,11 @@ CHARA player;
 
 //ゴール
 CHARA goal;
+
+//音楽
+AUDIO titleBGM;
+AUDIO playBGM;
+AUDIO endBGM;
 
 //プレイ画面の背景
 MOVIE playmovie;
@@ -86,6 +102,9 @@ VOID ChangeProc(VOID);	//切り替え画面(処理)
 VOID ChangeDraw(VOID);	//切り替え画面(描画)
 
 BOOL GameLoad(VOID);	//ゲームデータのロード
+
+//音楽のロード
+BOOL LoadAudio(AUDIO* audio, const char* path, int volume, int playtype);
 
 VOID GameInit(VOID);	//ゲームの初期化
 
@@ -149,6 +168,36 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		//データの読み込みに失敗したとき
 		DxLib_End();	//DxLib終了
 		return -1;		//強制終了
+	}
+
+	if (!LoadAudio(
+		&titleBGM,
+		".\\audio\\雪空.mp3",
+		255,
+		DX_PLAYTYPE_LOOP))
+	{
+		DxLib_End();
+		return -1;
+	}
+
+	if (!LoadAudio(
+		&playBGM,
+		".\\audio\\夢見る憧憬.mp3",
+		255,
+		DX_PLAYTYPE_LOOP))
+	{
+		DxLib_End();
+		return -1;
+	}
+
+	if (!LoadAudio(
+		&endBGM,
+		".\\audio\\NOIR.mp3",
+		255,
+		DX_PLAYTYPE_LOOP))
+	{
+		DxLib_End();
+		return -1;
 	}
 
 	//ゲームの初期化
@@ -222,6 +271,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	DeleteGraph(goal.handle);	//画像をメモリ上から削除
 	DeleteGraph(playmovie.handle);	//動画をメモリ上から削除
 
+	DeleteSoundMem(titleBGM.handle);
+	DeleteSoundMem(playBGM.handle);
+	DeleteSoundMem(endBGM.handle);
+
 	DxLib_End();				// ＤＸライブラリ使用の終了処理
 
 	return 0;				// ソフトの終了 
@@ -242,6 +295,15 @@ BOOL GameLoad(VOID)
 	//プレイ動画の背景読み込み
 	strcpyDx(playmovie.path, TEXT(".\\movie\\playmovie.mp4"));
 	playmovie.handle = LoadGraph(playmovie.path);	//動画の読み込み
+	////タイトル音楽の読み込み
+	//strcpyDx(titleBGM.path, TEXT(".\\audio\\雪空.mp3"));
+	//titleBGM.handle = LoadSoundMem(titleBGM.path);	//動画の読み込み
+	////プレイ音楽の読み込み
+	//strcpyDx(playBGM.path, TEXT(".\\audio\\夢見る憧憬.mp3"));
+	//playBGM.handle = LoadSoundMem(playBGM.path);	//動画の読み込み
+	////エンド音楽の読み込み
+	//strcpyDx(endBGM.path, TEXT(".\\audio\\NOIR.mp3"));
+	//endBGM.handle = LoadSoundMem(endBGM.path);	//動画の読み込み
 
 	if (player.handle == -1)
 	{
@@ -273,6 +335,45 @@ BOOL GameLoad(VOID)
 
 		return FALSE;
 	}
+	//if (titleBGM.handle == -1)
+	//{
+	//	MessageBox(
+	//		GetMainWindowHandle(),			//メッセージのウィンドウハンドル
+	//		TEXT(titleBGM.path),				//メッセージ本文
+	//		TEXT("動画読み込みエラー！"),	//メッセージタイトル
+	//		MB_OK);							//ボタン
+	//
+	//	return FALSE;
+	//}
+	//if (playBGM.handle == -1)
+	//{
+	//	MessageBox(
+	//		GetMainWindowHandle(),			//メッセージのウィンドウハンドル
+	//		TEXT(playBGM.path),				//メッセージ本文
+	//		TEXT("動画読み込みエラー！"),	//メッセージタイトル
+	//		MB_OK);							//ボタン
+	//
+	//	return FALSE;
+	//}
+	//if (endBGM.handle == -1)
+	//{
+	//	MessageBox(
+	//		GetMainWindowHandle(),			//メッセージのウィンドウハンドル
+	//		TEXT(endBGM.path),				//メッセージ本文
+	//		TEXT("動画読み込みエラー！"),	//メッセージタイトル
+	//		MB_OK);							//ボタン
+	//
+	//	return FALSE;
+	//}
+	//
+	//titleBGM.playtype = DX_PLAYTYPE_LOOP;
+	//titleBGM.volume = 255;
+	//
+	//playBGM.playtype = DX_PLAYTYPE_LOOP;
+	//playBGM.volume = 255;
+	//
+	//endBGM.playtype = DX_PLAYTYPE_LOOP;
+	//endBGM.volume = 255;
 
 	//画像の幅と高さを取得
 	GetGraphSize(player.handle, &player.width, &player.height);
@@ -280,6 +381,39 @@ BOOL GameLoad(VOID)
 	GetGraphSize(goal.handle, &goal.width, &goal.height);
 	//動画の幅と高さを取得
 	GetGraphSize(playmovie.handle, &playmovie.width, &playmovie.height);
+
+	return TRUE;
+}
+
+/// <summary>
+/// 音楽をメモリに読み込み
+/// </summary>
+/// <param name="audio">Audio構造体変数のアドレス</param>
+/// <param name="path">Audioの音楽パス</param>
+/// <param name="volume">ボリューム</param>
+/// <param name="playtype">DX_PLAYTYPE_LOOP or DX_PLAYTYPE_BACK</param>
+/// <returns></returns>
+BOOL LoadAudio(AUDIO* audio, const char* path, int volume, int playtype)
+{
+	//音楽の読み込み
+	strcpy(audio->path, path);					//パスのコピー
+	audio->handle = LoadSoundMem(audio->path);	//音楽の読み込み
+
+	//音楽が読み込めなかった時は、エラーが入る
+	if (audio->handle == -1)
+	{
+		MessageBox(
+			GetMainWindowHandle(),			//メインのウィンドウハンドル
+			audio->path,					//メッセージ本文
+			TEXT("音楽読み込みエラー！"),	//メッセージタイトル
+			MB_OK							//ボタン
+		);
+
+		return FALSE;
+	}
+	//その他の設定
+	audio->volume = volume;
+	audio->playtype = playtype;
 
 	return TRUE;
 }
@@ -345,6 +479,9 @@ VOID TitleProc(VOID)
 	//プレイシーンへ切り替える
 	if (KeyClick(KEY_INPUT_RETURN) == TRUE)
 	{
+		//BGMを止める
+		StopSoundMem(titleBGM.handle);
+		
 		//シーンを切り替え
 		//次のシーンの初期化をここで行うと楽
 
@@ -353,6 +490,15 @@ VOID TitleProc(VOID)
 
 		//プレイ画面に切り替え
 		ChangeScene(GAME_SCENE_PLAY);
+
+		return;
+	}
+
+	//BGMが流れていないとき
+	if (CheckSoundMem(titleBGM.handle) == 0)
+	{
+		//BGMを流す
+		PlaySoundMem(titleBGM.handle,titleBGM.playtype);
 	}
 	return;
 }
@@ -385,11 +531,16 @@ VOID PlayProc(VOID)
 	//エンドシーンへ切り替える
 	if (KeyClick(KEY_INPUT_RETURN) == TRUE && GAME_DEBUG == TRUE)
 	{
+		//BGMを止める
+		StopSoundMem(playBGM.handle);
+
 		//シーンを切り替え
 		//次のシーンの初期化をここで行うと楽
 
 		//エンド画面に切り替え
 		ChangeScene(GAME_SCENE_END);
+
+		return;
 	}
 
 	
@@ -409,8 +560,17 @@ VOID PlayProc(VOID)
 
 	if (CubeCollision(player.coll, goal.coll) == TRUE)	//プレイヤーがゴールにあたったとき
 	{
+		//BGMを止める
+		StopSoundMem(playBGM.handle);
+
 		ChangeScene(GAME_SCENE_END);					//エンド画面に切り替え
 		return;											//処理を強制終了
+	}
+	//BGMが流れていないとき
+	if (CheckSoundMem(playBGM.handle) == 0)
+	{
+		//BGMを流す
+		PlaySoundMem(playBGM.handle,playBGM.playtype);
 	}
 	return;
 }
@@ -485,11 +645,22 @@ VOID EndProc(VOID)
 	//タイトルシーンへ切り替える
 	if (KeyClick(KEY_INPUT_RETURN) == TRUE)
 	{
+		//BGMを止める
+		StopSoundMem(endBGM.handle);
+
 		//シーンを切り替え
 		//次のシーンの初期化をここで行うと楽
 
 		//タイトル画面に切り替え
 		ChangeScene(GAME_SCENE_TITLE);
+
+		return;
+	}
+	//BGMが流れていないとき
+	if (CheckSoundMem(endBGM.handle) == 0)
+	{
+		//BGMを流す
+		PlaySoundMem(endBGM.handle, endBGM.playtype);
 	}
 	return;
 }
