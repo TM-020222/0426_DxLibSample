@@ -63,6 +63,9 @@ AUDIO titleBGM;
 AUDIO playBGM;
 AUDIO endBGM;
 
+//効果音
+AUDIO playerSE;
+
 //プレイ画面の背景
 MOVIE playmovie;
 
@@ -200,6 +203,18 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		return -1;
 	}
 
+	if (!LoadAudio(
+		&playerSE,
+		".\\audio\\SE\\決定、ボタン押下2.mp3",
+		255,
+		DX_PLAYTYPE_BACK))
+	{
+		DxLib_End();
+		return -1;
+	}
+
+
+
 	//ゲームの初期化
 	GameInit();
 
@@ -267,13 +282,15 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	}
 
 	//終わるときの処理
-	DeleteGraph(player.handle);	//画像をメモリ上から削除
-	DeleteGraph(goal.handle);	//画像をメモリ上から削除
-	DeleteGraph(playmovie.handle);	//動画をメモリ上から削除
+	DeleteGraph(player.handle);			//画像をメモリ上から削除
+	DeleteGraph(goal.handle);			//画像をメモリ上から削除
+	DeleteGraph(playmovie.handle);		//動画をメモリ上から削除
 
-	DeleteSoundMem(titleBGM.handle);
-	DeleteSoundMem(playBGM.handle);
-	DeleteSoundMem(endBGM.handle);
+	DeleteSoundMem(titleBGM.handle);	//音楽をメモリ上から削除
+	DeleteSoundMem(playBGM.handle);		//音楽をメモリ上から削除
+	DeleteSoundMem(endBGM.handle);		//音楽をメモリ上から削除
+
+	DeleteSoundMem(playerSE.handle);	//音楽をメモリ上から削除
 
 	DxLib_End();				// ＤＸライブラリ使用の終了処理
 
@@ -546,13 +563,53 @@ VOID PlayProc(VOID)
 	
 
 	if (KeyDown(KEY_INPUT_UP) == TRUE)
+	{
 		player.y = player.y - player.speed * fps.DeltaTime;
+
+		//動くときの効果音を追加
+		//BGMが流れていないとき
+		if (CheckSoundMem(playerSE.handle) == 0)
+		{
+			//BGMを流す
+			PlaySoundMem(playerSE.handle, playerSE.playtype);
+		}
+	}
 	if (KeyDown(KEY_INPUT_DOWN) == TRUE)
+	{
 		player.y = player.y + player.speed * fps.DeltaTime;
+
+		//動くときの効果音を追加
+		//BGMが流れていないとき
+		if (CheckSoundMem(playerSE.handle) == 0)
+		{
+			//BGMを流す
+			PlaySoundMem(playerSE.handle, playerSE.playtype);
+		}
+	}
 	if (KeyDown(KEY_INPUT_LEFT) == TRUE)
+	{
 		player.x = player.x - player.speed * fps.DeltaTime;
+
+		//動くときの効果音を追加
+		//BGMが流れていないとき
+		if (CheckSoundMem(playerSE.handle) == 0)
+		{
+			//BGMを流す
+			PlaySoundMem(playerSE.handle, playerSE.playtype);
+		}
+	}
 	if (KeyDown(KEY_INPUT_RIGHT) == TRUE)
+	{
 		player.x = player.x + player.speed * fps.DeltaTime;
+
+		//動くときの効果音を追加
+		//BGMが流れていないとき
+		if (CheckSoundMem(playerSE.handle) == 0)
+		{
+			//BGMを流す
+			PlaySoundMem(playerSE.handle, playerSE.playtype);
+		}
+	}
 	
 	//当たり判定を更新する
 	CollUpdatePlayer(&player);
