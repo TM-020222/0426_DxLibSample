@@ -240,7 +240,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		return -1;
 	}
 
-	if (!LoadImg(&titlelogo,".\\image\\GameClear.png"))
+	if (!LoadImg(&endclear,".\\image\\GameClear.png"))
 	{
 		DxLib_End();
 		return -1;
@@ -472,6 +472,10 @@ BOOL LoadAudio(AUDIO* audio, const char* path, int volume, int playtype)
 	return TRUE;
 }
 
+/// <summary>
+/// 画像をメモリに読み込み
+/// </summary>
+/// <param name=""></param>
 BOOL LoadImg(IMAGE* image, const char* path)
 {
 	//画像の読み込み
@@ -516,6 +520,23 @@ VOID GameInit(VOID)
 	goal.img.y = GAME_HEIGHT / 2 - goal.img.height / 2;		//中央寄せ
 	goal.speed = 500;								//移動速度
 	goal.img.IsDraw = TRUE;								//描画できる
+
+	//タイトルロゴを初期化
+	titlelogo.x = GAME_WIDTH / 2 - titlelogo.width / 2;		//中央寄せ
+	titlelogo.y = titlelogo.height * 2;						//ちょっと上
+	titlelogo.IsDraw = TRUE;								//描画できる
+
+	//エンターを初期化
+	titleenter.x = GAME_WIDTH / 2 - titleenter.width / 2;	//中央寄せ
+	titleenter.y = GAME_HEIGHT - titleenter.height * 1.2;		//かなり下
+	titleenter.IsDraw = TRUE;								//描画できる
+
+	//クリアを初期化
+	endclear.x = GAME_WIDTH / 2 - endclear.width / 2;	//中央寄せ
+	endclear.y = GAME_HEIGHT / 2 - endclear.height / 2;	//ちょっと下
+	endclear.IsDraw = TRUE;								//描画できる
+
+
 
 	//動画を初期化
 	//playmovie.x = 0;			//左端寄せ
@@ -590,6 +611,9 @@ VOID TitleProc(VOID)
 VOID TitleDraw(VOID)
 {
 	DrawString(0, 0, "タイトル画面", GetColor(0, 0, 0));
+
+	DrawGraph(titlelogo.x, titlelogo.y, titlelogo.handle, TRUE);		//ロゴを描画
+	DrawGraph(titleenter.x, titleenter.y, titleenter.handle, TRUE);		//PUSHENTERを描画
 	return;
 }
 
@@ -792,6 +816,7 @@ VOID EndProc(VOID)
 VOID EndDraw(VOID)
 {
 	DrawString(0, 0, "エンド画面", GetColor(0, 0, 0));
+	DrawGraph(endclear.x, endclear.y, endclear.handle, TRUE);	//GAMECLEARを描画
 	return;
 }
 
