@@ -99,6 +99,21 @@ int fadeInCntInit = fadeTimeMax;	//初期値
 int fadeInCnt = fadeInCntInit;		//フェードインのカウンタ
 int fadeInCntMax = 0;				//フェードインのカウンタMAX 0?
 
+//TitleLogoのフェードイン
+int TitleLogoCnt = 0;
+const int TitleLogoCntMax = 60;
+BOOL TitleLogoIn = FALSE;
+
+//PushEnterの点滅
+int PushEnterCnt = 0;			//カウンタ
+const int PushEnterCntMax = 60;		//カウンタMAX
+BOOL PushEnterBrink = FALSE;	//点滅しているか
+
+//EndClearのフェードイン
+int EndClearCnt = 0;
+const int EndClearCntMax = 60;
+BOOL EndClearIn = FALSE;
+
 //プロトタイプ宣言
 VOID Title(VOID);		//タイトル画面
 VOID TitleProc(VOID);	//タイトル画面(処理)
@@ -524,19 +539,18 @@ VOID GameInit(VOID)
 	//タイトルロゴを初期化
 	titlelogo.x = GAME_WIDTH / 2 - titlelogo.width / 2;		//中央寄せ
 	titlelogo.y = titlelogo.height * 2;						//ちょっと上
-	titlelogo.IsDraw = TRUE;								//描画できる
 
 	//エンターを初期化
 	titleenter.x = GAME_WIDTH / 2 - titleenter.width / 2;	//中央寄せ
 	titleenter.y = GAME_HEIGHT - titleenter.height * 1.2;		//かなり下
-	titleenter.IsDraw = TRUE;								//描画できる
 
 	//クリアを初期化
 	endclear.x = GAME_WIDTH / 2 - endclear.width / 2;	//中央寄せ
 	endclear.y = GAME_HEIGHT / 2 - endclear.height / 2;	//ちょっと下
-	endclear.IsDraw = TRUE;								//描画できる
 
-
+	//EndClearのフェードイン
+	EndClearCnt = 0;
+	EndClearIn = FALSE;	//していない
 
 	//動画を初期化
 	//playmovie.x = 0;			//左端寄せ
@@ -547,6 +561,21 @@ VOID GameInit(VOID)
 	//当たり判定を更新する
 	CollUpdatePlayer(&player);	//プレイヤーの当たり判定のアドレス
 	//CollUpdateGoal(&goal);	//ゴールの当たり判定のアドレス
+}
+
+/// <summary>
+/// タイトルの画像を初期化
+/// </summary>
+/// <param name=""></param>
+VOID TitleInit(VOID)
+{
+	//PushEnterの点滅
+	PushEnterCnt = 0;
+	PushEnterBrink = FALSE;
+
+	//TitleLogoのフェードイン
+	TitleLogoCnt = 0;
+	TitleLogoIn = FALSE;	//していない
 }
 
 /// <summary>
@@ -610,10 +639,47 @@ VOID TitleProc(VOID)
 /// </summary>
 VOID TitleDraw(VOID)
 {
-	DrawString(0, 0, "タイトル画面", GetColor(0, 0, 0));
+	//フェードイン
+	if (TitleLogoIn == FALSE && TitleLogoCntMax >TitleLogoCnt)
+	{
+		//半透明
+		SetDrawBlendMode(DX_BLENDMODE_ALPHA,
+			((float)TitleLogoCnt / TitleLogoCntMax) * 255);
 
-	DrawGraph(titlelogo.x, titlelogo.y, titlelogo.handle, TRUE);		//ロゴを描画
-	DrawGraph(titleenter.x, titleenter.y, titleenter.handle, TRUE);		//PUSHENTERを描画
+		DrawGraph(titlelogo.x, titlelogo.y,
+			titlelogo.handle, TRUE);		//ロゴを描画
+
+		//半透明終了
+		SetDrawBlendMode(DX_BLENDMODE_NOBLEND, 0);
+
+		TitleLogoCnt++;
+	}
+	else if(TitleLogoCntMax == TitleLogoCnt)
+	{
+		TitleLogoIn == TRUE;	//完了
+		DrawGraph(titlelogo.x, titlelogo.y,
+			titlelogo.handle, TRUE);		//ロゴを描画
+	}
+
+	//MAX値まで待つ
+	if (PushEnterCnt < PushEnterCntMax) { PushEnterCnt++; }
+	else
+	{
+		PushEnterCnt = 0;
+		if (PushEnterBrink == TRUE) { PushEnterBrink = FALSE; PushEnterCnt = 40; }	//20f
+		else if (PushEnterBrink == FALSE) { PushEnterBrink = TRUE; }				//60f
+	}
+
+	//PushEnterを点滅
+	if (PushEnterBrink == TRUE)
+	{
+		//PushEnterの描画
+		DrawGraph(titleenter.x, titleenter.y,
+			titleenter.handle, TRUE);		//PUSHENTERを描画
+	}
+	
+	DrawString(0, 0, "タイトル画面", GetColor(0, 0, 0));
+	
 	return;
 }
 
@@ -796,6 +862,9 @@ VOID EndProc(VOID)
 		//シーンを切り替え
 		//次のシーンの初期化をここで行うと楽
 
+		//タイトルの初期化
+		TitleInit();
+
 		//タイトル画面に切り替え
 		ChangeScene(GAME_SCENE_TITLE);
 
@@ -816,7 +885,27 @@ VOID EndProc(VOID)
 VOID EndDraw(VOID)
 {
 	DrawString(0, 0, "エンド画面", GetColor(0, 0, 0));
-	DrawGraph(endclear.x, endclear.y, endclear.handle, TRUE);	//GAMECLEARを描画
+	//フェードイン
+	if (EndClearIn == FALSE && EndClearCntMax > EndClearCnt)
+	{
+		//半透明
+		SetDrawBlendMode(DX_BLENDMODE_ALPHA,
+			((float)EndClearCnt / EndClearCntMax) * 255);
+
+		DrawGraph(endclear.x, endclear.y,
+			endclear.handle, TRUE);		//GameClearを描画
+
+		//半透明終了
+		SetDrawBlendMode(DX_BLENDMODE_NOBLEND, 0);
+
+		EndClearCnt++;
+	}
+	else if (EndClearCntMax == EndClearCnt)
+	{
+		EndClearIn == TRUE;	//完了
+		DrawGraph(endclear.x, endclear.y,
+			endclear.handle, TRUE);		//GameClearを描画
+	}
 	return;
 }
 
