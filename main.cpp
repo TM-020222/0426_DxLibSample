@@ -65,10 +65,16 @@ CHARA player;
 //ゴール
 CHARA goal;
 
+//敵
+CHARA enemy;
+
 //画像を読み込む
 IMAGE titlelogo;
 IMAGE titleenter;
 IMAGE endclear;
+IMAGE endover;
+IMAGE asiato1;
+IMAGE asiato2;
 
 //音楽
 AUDIO titleBGM;
@@ -100,19 +106,34 @@ int fadeInCnt = fadeInCntInit;		//フェードインのカウンタ
 int fadeInCntMax = 0;				//フェードインのカウンタMAX 0?
 
 //TitleLogoのフェードイン
-int TitleLogoCnt = 0;
-const int TitleLogoCntMax = 60;
-BOOL TitleLogoIn = FALSE;
+int TitleLogoCnt = 0;				//カウンタ
+const int TitleLogoCntMax = 60;		//カウンタMAX
+BOOL TitleLogoIn = FALSE;			//フェードインしたか
 
 //PushEnterの点滅
-int PushEnterCnt = 0;			//カウンタ
+int PushEnterCnt = 0;				//カウンタ
 const int PushEnterCntMax = 60;		//カウンタMAX
-BOOL PushEnterBrink = FALSE;	//点滅しているか
+BOOL PushEnterBrink = FALSE;		//点滅しているか
 
 //EndClearのフェードイン
-int EndClearCnt = 0;
-const int EndClearCntMax = 60;
-BOOL EndClearIn = FALSE;
+int EndClearCnt = 0;				//カウンタ
+const int EndClearCntMax = 60;		//カウンタMAX
+BOOL EndClearIn = FALSE;			//フェードインしたか
+
+//EndOverのフェードイン
+int EndOverCnt = 0;					//カウンタ
+const int EndOverCntMax = 60;		//カウンタMAX
+BOOL EndOverIn = FALSE;				//フェードインしたか
+
+//足跡の描画用関数
+int oldasiato = 0;
+int playerplaceX = 0;
+int playerplaceY = 0;
+
+//足跡のフェードアウト
+int asiatoCnt = 0;					//カウンタ
+const int asiatoCntMax = 30;		//カウンタMAX
+BOOL asiatoOut = FALSE;				//フェードアウトしたか
 
 //プロトタイプ宣言
 VOID Title(VOID);		//タイトル画面
@@ -130,6 +151,10 @@ VOID EndDraw(VOID);		//エンド画面(描画)
 VOID Change(VOID);		//切り替え画面
 VOID ChangeProc(VOID);	//切り替え画面(処理)
 VOID ChangeDraw(VOID);	//切り替え画面(描画)
+
+VOID Over(VOID);		//ゲームオーバー画面
+VOID OverProc(VOID);	//ゲームオーバー画面(処理)
+VOID OverDraw(VOID);	//ゲームオーバー画面(描画)
 
 BOOL GameLoad(VOID);	//ゲームデータのロード
 
@@ -262,6 +287,24 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		return -1;
 	}
 
+	if (!LoadImg(&endover,".\\image\\GameOver.png"))
+	{
+		DxLib_End();
+		return -1;
+	}
+
+	if (!LoadImg(&asiato1,".\\image\\asiato1.png"))
+	{
+		DxLib_End();
+		return -1;
+	}
+
+	if (!LoadImg(&asiato2,".\\image\\asiato2.png"))
+	{
+		DxLib_End();
+		return -1;
+	}
+
 
 
 	//ゲームの初期化
@@ -309,6 +352,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		case GAME_SCENE_CHANGE:
 			Change();			//切り替え画面
 			break;
+		case GAME_SCENE_OVER:
+			Over();
+			break;
 		default:
 			break;
 		}
@@ -336,11 +382,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	//終わるときの処理
 	DeleteGraph(player.img.handle);			//画像をメモリ上から削除
 	DeleteGraph(goal.img.handle);			//画像をメモリ上から削除
+	DeleteGraph(enemy.img.handle);			//画像をメモリ上から削除
 	DeleteGraph(playmovie.handle);		//動画をメモリ上から削除
 	
 	DeleteGraph(titlelogo.handle);			//画像をメモリ上から削除
 	DeleteGraph(titleenter.handle);			//画像をメモリ上から削除
 	DeleteGraph(endclear.handle);			//画像をメモリ上から削除
+	DeleteGraph(endover.handle);			//画像をメモリ上から削除
 
 	DeleteSoundMem(titleBGM.handle);	//音楽をメモリ上から削除
 	DeleteSoundMem(playBGM.handle);		//音楽をメモリ上から削除
@@ -365,6 +413,9 @@ BOOL GameLoad(VOID)
 	//ゴールの画像を読み込み
 	strcpyDx(goal.img.path, TEXT(".\\image\\goal.png"));
 	goal.img.handle = LoadGraph(goal.img.path);	//画像の読み込み
+	//敵の画像を読み込み
+	strcpyDx(enemy.img.path, TEXT(".\\image\\dokuro.png"));
+	enemy.img.handle = LoadGraph(enemy.img.path);	//画像の読み込み
 	//プレイ動画の背景読み込み
 	strcpyDx(playmovie.path, TEXT(".\\movie\\playmovie.mp4"));
 	playmovie.handle = LoadGraph(playmovie.path);	//動画の読み込み
@@ -393,6 +444,16 @@ BOOL GameLoad(VOID)
 		MessageBox(
 			GetMainWindowHandle(),			//メッセージのウィンドウハンドル
 			TEXT(goal.img.path),				//メッセージ本文
+			TEXT("画像読み込みエラー！"),	//メッセージタイトル
+			MB_OK);							//ボタン
+
+		return FALSE;
+	}
+	if (enemy.img.handle == -1)
+	{
+		MessageBox(
+			GetMainWindowHandle(),			//メッセージのウィンドウハンドル
+			TEXT(enemy.img.path),				//メッセージ本文
 			TEXT("画像読み込みエラー！"),	//メッセージタイトル
 			MB_OK);							//ボタン
 
@@ -452,6 +513,8 @@ BOOL GameLoad(VOID)
 	GetGraphSize(player.img.handle, &player.img.width, &player.img.height);
 	//画像の幅と高さを取得
 	GetGraphSize(goal.img.handle, &goal.img.width, &goal.img.height);
+	//画像の幅と高さを取得
+	GetGraphSize(enemy.img.handle, &enemy.img.width, &enemy.img.height);
 	//動画の幅と高さを取得
 	GetGraphSize(playmovie.handle, &playmovie.width, &playmovie.height);
 
@@ -555,6 +618,28 @@ VOID GameInit(VOID)
 	//EndClearのフェードイン
 	EndClearCnt = 0;
 	EndClearIn = FALSE;	//していない
+
+	//敵を初期化
+	enemy.img.x = 0;			//左
+	enemy.img.y = enemy.img.height;			//ちょい上
+	enemy.img.IsDraw = TRUE;	//描画できる
+
+	//ゲームオーバーを初期化
+	endover.x = GAME_WIDTH / 2 - endover.width / 2;	//中央寄せ
+	endover.y = GAME_HEIGHT / 2 - endover.height / 2;	//ちょっと下
+
+	//足跡の初期化
+	oldasiato = 0;
+
+	//足跡1の初期化
+	asiato1.x = 0;
+	asiato1.y = 0;
+	asiato1.IsDraw = FALSE;
+
+	//足跡2の初期化
+	asiato2.x = 0;
+	asiato2.y = 0;
+	asiato2.IsDraw = FALSE;
 
 	//動画を初期化
 	//playmovie.x = 0;			//左端寄せ
@@ -727,8 +812,19 @@ VOID PlayProc(VOID)
 		//BGMが流れていないとき
 		if (CheckSoundMem(playerSE.handle) == 0)
 		{
+			playerplaceX = player.img.x;	//プレイヤーのX座標を記録
+			playerplaceY = player.img.y;	//プレイヤーのY座標を記録
 			//BGMを流す
 			PlaySoundMem(playerSE.handle, playerSE.playtype);
+			asiatoOut = FALSE;				//フェードアウトしているか
+			if (oldasiato != 1)
+			{
+				asiato1.IsDraw = TRUE;
+			}
+			else
+			{
+				asiato2.IsDraw = TRUE;
+			}
 		}
 	}
 	if (KeyDown(KEY_INPUT_DOWN) == TRUE)
@@ -739,8 +835,19 @@ VOID PlayProc(VOID)
 		//BGMが流れていないとき
 		if (CheckSoundMem(playerSE.handle) == 0)
 		{
+			playerplaceX = player.img.x;	//プレイヤーのX座標を記録
+			playerplaceY = player.img.y;	//プレイヤーのY座標を記録
 			//BGMを流す
 			PlaySoundMem(playerSE.handle, playerSE.playtype);
+			asiatoOut = FALSE;				//フェードアウトしているか
+			if (oldasiato != 1)
+			{
+				asiato1.IsDraw = TRUE;
+			}
+			else
+			{
+				asiato2.IsDraw = TRUE;
+			}
 		}
 	}
 	if (KeyDown(KEY_INPUT_LEFT) == TRUE)
@@ -751,8 +858,19 @@ VOID PlayProc(VOID)
 		//BGMが流れていないとき
 		if (CheckSoundMem(playerSE.handle) == 0)
 		{
+			playerplaceX = player.img.x;	//プレイヤーのX座標を記録
+			playerplaceY = player.img.y;	//プレイヤーのY座標を記録
 			//BGMを流す
 			PlaySoundMem(playerSE.handle, playerSE.playtype);
+			asiatoOut = FALSE;				//フェードアウトしているか
+			if (oldasiato != 1)
+			{
+				asiato1.IsDraw = TRUE;
+			}
+			else
+			{
+				asiato2.IsDraw = TRUE;
+			}
 		}
 	}
 	if (KeyDown(KEY_INPUT_RIGHT) == TRUE)
@@ -763,14 +881,26 @@ VOID PlayProc(VOID)
 		//BGMが流れていないとき
 		if (CheckSoundMem(playerSE.handle) == 0)
 		{
+			playerplaceX = player.img.x;	//プレイヤーのX座標を記録
+			playerplaceY = player.img.y;	//プレイヤーのY座標を記録
 			//BGMを流す
 			PlaySoundMem(playerSE.handle, playerSE.playtype);
+			asiatoOut = FALSE;				//フェードアウトしているか
+			if (oldasiato != 1)
+			{
+				asiato1.IsDraw = TRUE;
+			}
+			else
+			{
+				asiato2.IsDraw = TRUE;
+			}
 		}
 	}
 	
 	//当たり判定を更新する
 	CollUpdatePlayer(&player);
 	CollUpdateGoal(&goal);
+	CollUpdateGoal(&enemy);
 
 	if (CubeCollision(player.coll, goal.coll) == TRUE)	//プレイヤーがゴールにあたったとき
 	{
@@ -781,6 +911,17 @@ VOID PlayProc(VOID)
 		ChangeScene(GAME_SCENE_END);					//エンド画面に切り替え
 		return;											//処理を強制終了
 	}
+
+	if (CubeCollision(player.coll, enemy.coll) == TRUE)	//プレイヤーが敵にあたったとき
+	{
+		//BGMを止める
+		StopSoundMem(playBGM.handle);
+		StopSoundMem(playerSE.handle);
+
+		ChangeScene(GAME_SCENE_OVER);					//ゲームオーバー画面に切り替え
+		return;											//処理を強制終了
+	}
+
 	//BGMが流れていないとき
 	if (CheckSoundMem(playBGM.handle) == 0)
 	{
@@ -834,6 +975,71 @@ VOID PlayDraw(VOID)
 			//四角を描画
 			DrawBox(goal.coll.left, goal.coll.top, goal.coll.right, goal.coll.bottom,
 				GetColor(255, 0, 0), FALSE);
+		}
+	}
+	
+	//敵を描画
+	if (enemy.img.IsDraw == TRUE)
+	{
+		//画像を描画
+		DrawGraph(enemy.img.x, enemy.img.y, enemy.img.handle, TRUE);
+
+		//デバッグの時は、当たり判定の領域を描画
+		if (GAME_DEBUG == TRUE)
+		{
+			//四角を描画
+			DrawBox(enemy.coll.left, enemy.coll.top, enemy.coll.right, enemy.coll.bottom,
+				GetColor(255, 0, 0), FALSE);
+		}
+	}
+	if (asiato1.IsDraw == TRUE)
+	{
+		//フェードイン
+		if (asiatoOut == FALSE && asiatoCntMax > asiatoCnt)
+		{
+			//半透明
+			SetDrawBlendMode(DX_BLENDMODE_ALPHA,
+				((float)(asiatoCntMax - asiatoCnt) / asiatoCntMax) * 255);
+		
+			DrawGraph(playerplaceX +(player.img.width/2)-asiato1.width, playerplaceY+player.img.height-asiato1.height/2,
+				asiato1.handle, TRUE);		//ロゴを描画
+		
+			//半透明終了
+			SetDrawBlendMode(DX_BLENDMODE_NOBLEND, 0);
+		
+			asiatoCnt++;
+		}
+		else if (asiatoCntMax <= asiatoCnt)
+		{
+			asiatoOut = TRUE;	//完了
+			asiatoCnt = 0;
+			asiato1.IsDraw = FALSE;
+			oldasiato = 1;
+		}
+	}
+	if (asiato2.IsDraw == TRUE)
+	{
+		//フェードイン
+		if (asiatoOut == FALSE && asiatoCntMax > asiatoCnt)
+		{
+			//半透明
+			SetDrawBlendMode(DX_BLENDMODE_ALPHA,
+				((float)(asiatoCntMax - asiatoCnt) / asiatoCntMax) * 255);
+		
+			DrawGraph(playerplaceX+(player.img.width/2)+asiato2.width, playerplaceY+player.img.height - asiato2.height / 2,
+				asiato2.handle, TRUE);		//ロゴを描画
+		
+			//半透明終了
+			SetDrawBlendMode(DX_BLENDMODE_NOBLEND, 0);
+		
+			asiatoCnt++;
+		}
+		else if (asiatoCntMax <= asiatoCnt)
+		{
+			asiatoOut = TRUE;	//完了
+			asiatoCnt = 0;
+			asiato2.IsDraw = FALSE;
+			oldasiato = 2;
 		}
 	}
 
@@ -986,6 +1192,9 @@ VOID ChangeDraw(VOID)
 	case GAME_SCENE_END:
 		EndDraw();			// エンド 画面の描画
 		break;
+	case GAME_SCENE_OVER:
+		OverDraw();
+		break;
 	default:
 		break;
 	}
@@ -1009,6 +1218,70 @@ VOID ChangeDraw(VOID)
 	SetDrawBlendMode(DX_BLENDMODE_NOBLEND, 0);
 
 	DrawString(0, 16, "切り替え画面", GetColor(128, 128, 128));
+	return;
+}
+
+//ゲームオーバー画面
+VOID Over(VOID)
+{
+	OverProc();	//処理
+	OverDraw();	//描画
+
+	return;
+}
+
+VOID OverProc(VOID)
+{
+	//タイトルシーンへ切り替える
+	if (KeyClick(KEY_INPUT_RETURN) == TRUE)
+	{
+		//BGMを止める
+		StopSoundMem(endBGM.handle);
+
+		//シーンを切り替え
+		//次のシーンの初期化をここで行うと楽
+
+		//タイトルの初期化
+		TitleInit();
+
+		//タイトル画面に切り替え
+		ChangeScene(GAME_SCENE_TITLE);
+
+		return;
+	}
+	//BGMが流れていないとき
+	if (CheckSoundMem(endBGM.handle) == 0)
+	{
+		//BGMを流す
+		PlaySoundMem(endBGM.handle, endBGM.playtype);
+	}
+	return;
+}
+
+VOID OverDraw(VOID)
+{
+	DrawString(0, 0, "ゲームオーバー画面", GetColor(0, 0, 0));
+	//フェードイン
+	if (EndOverIn == FALSE && EndOverCntMax > EndOverCnt)
+	{
+		//半透明
+		SetDrawBlendMode(DX_BLENDMODE_ALPHA,
+			((float)EndOverCnt / EndOverCntMax) * 255);
+
+		DrawGraph(endover.x, endover.y,
+			endover.handle, TRUE);		//GameClearを描画
+
+		//半透明終了
+		SetDrawBlendMode(DX_BLENDMODE_NOBLEND, 0);
+
+		EndOverCnt++;
+	}
+	else if (EndOverCntMax == EndOverCnt)
+	{
+		EndOverIn == TRUE;	//完了
+		DrawGraph(endover.x, endover.y,
+			endover.handle, TRUE);		//GameOverを描画
+	}
 	return;
 }
 
