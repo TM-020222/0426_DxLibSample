@@ -140,6 +140,7 @@ BOOL LoadAudio(AUDIO* audio, const char* path, int volume, int playtype);
 BOOL LoadImg(IMAGE* image, const char* path);
 
 VOID GameInit(VOID);	//ゲームの初期化
+VOID TitleInit(VOID);	//タイトルの初期化
 
 VOID CollUpdatePlayer(CHARA* chara);	//当たり判定の領域を更新
 VOID CollUpdateGoal(CHARA* chara);		//当たり判定の領域を更新
@@ -265,6 +266,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 	//ゲームの初期化
 	GameInit();
+
+	//タイトルの初期化
+	TitleInit();
 
 	while (1)
 	{
