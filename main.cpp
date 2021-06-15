@@ -80,6 +80,7 @@ IMAGE asiato2;
 AUDIO titleBGM;
 AUDIO playBGM;
 AUDIO endBGM;
+AUDIO overBGM;
 
 //効果音
 AUDIO playerSE;
@@ -134,6 +135,9 @@ int playerplaceY = 0;
 int asiatoCnt = 0;					//カウンタ
 const int asiatoCntMax = 30;		//カウンタMAX
 BOOL asiatoOut = FALSE;				//フェードアウトしたか
+
+//プレイ画面の時間経過
+float playtime = 0;
 
 //プロトタイプ宣言
 VOID Title(VOID);		//タイトル画面
@@ -251,6 +255,16 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	if (!LoadAudio(
 		&endBGM,
 		".\\audio\\NOIR.mp3",
+		255,
+		DX_PLAYTYPE_LOOP))
+	{
+		DxLib_End();
+		return -1;
+	}
+
+	if (!LoadAudio(
+		&overBGM,
+		".\\audio\\潜む者.mp3",
 		255,
 		DX_PLAYTYPE_LOOP))
 	{
@@ -408,6 +422,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	DeleteSoundMem(titleBGM.handle);	//音楽をメモリ上から削除
 	DeleteSoundMem(playBGM.handle);		//音楽をメモリ上から削除
 	DeleteSoundMem(endBGM.handle);		//音楽をメモリ上から削除
+	DeleteSoundMem(overBGM.handle);		//音楽をメモリ上から削除
 
 	DeleteSoundMem(playerSE.handle);	//音楽をメモリ上から削除
 
@@ -829,6 +844,9 @@ VOID PlayProc(VOID)
 	CollUpdate(&goal);
 	CollUpdate(&enemy);
 
+	//時間を処理
+	playtime += fps.DeltaTime;
+
 	if (CubeCollision(player.coll, goal.coll) == TRUE)	//プレイヤーがゴールにあたったとき
 	{
 		//BGMを止める
@@ -982,6 +1000,7 @@ VOID PlayDraw(VOID)
 		}
 	}
 
+	DrawFormatString(0, GAME_HEIGHT - 40, GetColor(255,255,255),"%.2f秒",playtime);
 	DrawString(0, 0, "プレイ画面", GetColor(255, 255, 255));
 	return;
 }
@@ -1180,7 +1199,7 @@ VOID OverProc(VOID)
 	if (KeyClick(KEY_INPUT_RETURN) == TRUE)
 	{
 		//BGMを止める
-		StopSoundMem(endBGM.handle);
+		StopSoundMem(overBGM.handle);
 
 		//シーンを切り替え
 		//次のシーンの初期化をここで行うと楽
@@ -1194,10 +1213,10 @@ VOID OverProc(VOID)
 		return;
 	}
 	//BGMが流れていないとき
-	if (CheckSoundMem(endBGM.handle) == 0)
+	if (CheckSoundMem(overBGM.handle) == 0)
 	{
 		//BGMを流す
-		PlaySoundMem(endBGM.handle, endBGM.playtype);
+		PlaySoundMem(overBGM.handle, overBGM.playtype);
 	}
 	return;
 }
