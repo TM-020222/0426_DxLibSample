@@ -167,8 +167,7 @@ BOOL LoadImg(IMAGE* image, const char* path);
 VOID GameInit(VOID);	//ゲームの初期化
 VOID TitleInit(VOID);	//タイトルの初期化
 
-VOID CollUpdatePlayer(CHARA* chara);	//当たり判定の領域を更新
-VOID CollUpdateGoal(CHARA* chara);		//当たり判定の領域を更新
+VOID CollUpdate(CHARA* chara);	//当たり判定の領域を更新
 
 BOOL CubeCollision(RECT A, RECT B);		//矩形と矩形の当たり判定
 
@@ -305,7 +304,23 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		return -1;
 	}
 
+	if (!LoadImg(&player.img,".\\image\\player.png"))
+	{
+		DxLib_End();
+		return -1;
+	}
 
+	if (!LoadImg(&goal.img,".\\image\\goal.png"))
+	{
+		DxLib_End();
+		return -1;
+	}
+
+	if (!LoadImg(&enemy.img,".\\image\\dokuro.png"))
+	{
+		DxLib_End();
+		return -1;
+	}
 
 	//ゲームの初期化
 	GameInit();
@@ -352,7 +367,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		case GAME_SCENE_CHANGE:
 			Change();			//切り替え画面
 			break;
-		case GAME_SCENE_OVER:
+		case GAME_SCENE_OVER:	//ゲームオーバー画面
 			Over();
 			break;
 		default:
@@ -407,58 +422,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 /// <returns>読み込めたらTRUE,読み込めなかったらFALSE</returns>
 BOOL GameLoad(VOID)
 {
-	//プレイヤーの画像を読み込み
-	strcpyDx(player.img.path, TEXT(".\\image\\player.png"));
-	player.img.handle = LoadGraph(player.img.path);	//画像の読み込み
-	//ゴールの画像を読み込み
-	strcpyDx(goal.img.path, TEXT(".\\image\\goal.png"));
-	goal.img.handle = LoadGraph(goal.img.path);	//画像の読み込み
-	//敵の画像を読み込み
-	strcpyDx(enemy.img.path, TEXT(".\\image\\dokuro.png"));
-	enemy.img.handle = LoadGraph(enemy.img.path);	//画像の読み込み
 	//プレイ動画の背景読み込み
 	strcpyDx(playmovie.path, TEXT(".\\movie\\playmovie.mp4"));
 	playmovie.handle = LoadGraph(playmovie.path);	//動画の読み込み
-	////タイトル音楽の読み込み
-	//strcpyDx(titleBGM.path, TEXT(".\\audio\\雪空.mp3"));
-	//titleBGM.handle = LoadSoundMem(titleBGM.path);	//動画の読み込み
-	////プレイ音楽の読み込み
-	//strcpyDx(playBGM.path, TEXT(".\\audio\\夢見る憧憬.mp3"));
-	//playBGM.handle = LoadSoundMem(playBGM.path);	//動画の読み込み
-	////エンド音楽の読み込み
-	//strcpyDx(endBGM.path, TEXT(".\\audio\\NOIR.mp3"));
-	//endBGM.handle = LoadSoundMem(endBGM.path);	//動画の読み込み
 
-	if (player.img.handle == -1)
-	{
-		MessageBox(
-			GetMainWindowHandle(),			//メッセージのウィンドウハンドル
-			TEXT(player.img.path),				//メッセージ本文
-			TEXT("画像読み込みエラー！"),	//メッセージタイトル
-			MB_OK);							//ボタン
-
-		return FALSE;
-	}
-	if (goal.img.handle == -1)
-	{
-		MessageBox(
-			GetMainWindowHandle(),			//メッセージのウィンドウハンドル
-			TEXT(goal.img.path),				//メッセージ本文
-			TEXT("画像読み込みエラー！"),	//メッセージタイトル
-			MB_OK);							//ボタン
-
-		return FALSE;
-	}
-	if (enemy.img.handle == -1)
-	{
-		MessageBox(
-			GetMainWindowHandle(),			//メッセージのウィンドウハンドル
-			TEXT(enemy.img.path),				//メッセージ本文
-			TEXT("画像読み込みエラー！"),	//メッセージタイトル
-			MB_OK);							//ボタン
-
-		return FALSE;
-	}
 	if (playmovie.handle == -1)
 	{
 		MessageBox(
@@ -469,52 +436,7 @@ BOOL GameLoad(VOID)
 
 		return FALSE;
 	}
-	//if (titleBGM.handle == -1)
-	//{
-	//	MessageBox(
-	//		GetMainWindowHandle(),			//メッセージのウィンドウハンドル
-	//		TEXT(titleBGM.path),				//メッセージ本文
-	//		TEXT("動画読み込みエラー！"),	//メッセージタイトル
-	//		MB_OK);							//ボタン
-	//
-	//	return FALSE;
-	//}
-	//if (playBGM.handle == -1)
-	//{
-	//	MessageBox(
-	//		GetMainWindowHandle(),			//メッセージのウィンドウハンドル
-	//		TEXT(playBGM.path),				//メッセージ本文
-	//		TEXT("動画読み込みエラー！"),	//メッセージタイトル
-	//		MB_OK);							//ボタン
-	//
-	//	return FALSE;
-	//}
-	//if (endBGM.handle == -1)
-	//{
-	//	MessageBox(
-	//		GetMainWindowHandle(),			//メッセージのウィンドウハンドル
-	//		TEXT(endBGM.path),				//メッセージ本文
-	//		TEXT("動画読み込みエラー！"),	//メッセージタイトル
-	//		MB_OK);							//ボタン
-	//
-	//	return FALSE;
-	//}
-	//
-	//titleBGM.playtype = DX_PLAYTYPE_LOOP;
-	//titleBGM.volume = 255;
-	//
-	//playBGM.playtype = DX_PLAYTYPE_LOOP;
-	//playBGM.volume = 255;
-	//
-	//endBGM.playtype = DX_PLAYTYPE_LOOP;
-	//endBGM.volume = 255;
 
-	//画像の幅と高さを取得
-	GetGraphSize(player.img.handle, &player.img.width, &player.img.height);
-	//画像の幅と高さを取得
-	GetGraphSize(goal.img.handle, &goal.img.width, &goal.img.height);
-	//画像の幅と高さを取得
-	GetGraphSize(enemy.img.handle, &enemy.img.width, &enemy.img.height);
 	//動画の幅と高さを取得
 	GetGraphSize(playmovie.handle, &playmovie.width, &playmovie.height);
 
@@ -642,14 +564,11 @@ VOID GameInit(VOID)
 	asiato2.IsDraw = FALSE;
 
 	//動画を初期化
-	//playmovie.x = 0;			//左端寄せ
-	//playmovie.y = 0;			//左端寄せ
 	playmovie.volume = 255;		//音量最大
-	//playmovie.IsDraw = TRUE;	//描画できる
 
 	//当たり判定を更新する
-	CollUpdatePlayer(&player);	//プレイヤーの当たり判定のアドレス
-	//CollUpdateGoal(&goal);	//ゴールの当たり判定のアドレス
+	CollUpdate(&player);	//プレイヤーの当たり判定のアドレス
+	CollUpdate(&goal);	//ゴールの当たり判定のアドレス
 }
 
 /// <summary>
@@ -819,10 +738,12 @@ VOID PlayProc(VOID)
 			asiatoOut = FALSE;				//フェードアウトしているか
 			if (oldasiato != 1)
 			{
+				//足跡1描画可能
 				asiato1.IsDraw = TRUE;
 			}
 			else
 			{
+				//足跡2描画可能
 				asiato2.IsDraw = TRUE;
 			}
 		}
@@ -842,10 +763,12 @@ VOID PlayProc(VOID)
 			asiatoOut = FALSE;				//フェードアウトしているか
 			if (oldasiato != 1)
 			{
+				//足跡1描画可能
 				asiato1.IsDraw = TRUE;
 			}
 			else
 			{
+				//足跡2描画可能
 				asiato2.IsDraw = TRUE;
 			}
 		}
@@ -865,10 +788,12 @@ VOID PlayProc(VOID)
 			asiatoOut = FALSE;				//フェードアウトしているか
 			if (oldasiato != 1)
 			{
+				//足跡1描画可能
 				asiato1.IsDraw = TRUE;
 			}
 			else
 			{
+				//足跡2描画可能
 				asiato2.IsDraw = TRUE;
 			}
 		}
@@ -888,19 +813,21 @@ VOID PlayProc(VOID)
 			asiatoOut = FALSE;				//フェードアウトしているか
 			if (oldasiato != 1)
 			{
+				//足跡1描画可能
 				asiato1.IsDraw = TRUE;
 			}
 			else
 			{
+				//足跡2描画可能
 				asiato2.IsDraw = TRUE;
 			}
 		}
 	}
 	
 	//当たり判定を更新する
-	CollUpdatePlayer(&player);
-	CollUpdateGoal(&goal);
-	CollUpdateGoal(&enemy);
+	CollUpdate(&player);
+	CollUpdate(&goal);
+	CollUpdate(&enemy);
 
 	if (CubeCollision(player.coll, goal.coll) == TRUE)	//プレイヤーがゴールにあたったとき
 	{
@@ -1233,7 +1160,9 @@ VOID ChangeDraw(VOID)
 	return;
 }
 
-//ゲームオーバー画面
+/// <summary>
+/// ゲームオーバー画面
+/// </summary>
 VOID Over(VOID)
 {
 	OverProc();	//処理
@@ -1242,6 +1171,9 @@ VOID Over(VOID)
 	return;
 }
 
+/// <summary>
+/// ゲームオーバー画面の処理
+/// </summary>
 VOID OverProc(VOID)
 {
 	//タイトルシーンへ切り替える
@@ -1270,6 +1202,10 @@ VOID OverProc(VOID)
 	return;
 }
 
+/// <summary>
+/// ゲームオーバー画面の描画
+/// </summary>
+/// <param name=""></param>
 VOID OverDraw(VOID)
 {
 	DrawString(0, 0, "ゲームオーバー画面", GetColor(0, 0, 0));
@@ -1301,21 +1237,7 @@ VOID OverDraw(VOID)
 /// 当たり判定の領域更新
 /// </summary>
 /// <param name="chara">当たり判定の領域</param>
-VOID CollUpdatePlayer(CHARA* chara)
-{
-	chara->coll.left = chara->img.x;
-	chara->coll.top = chara->img.y;
-	chara->coll.right = chara->img.x + chara->img.width;
-	chara->coll.bottom = chara->img.y + chara->img.height;
-
-	return;
-}
-
-/// <summary>
-/// 当たり判定の領域更新
-/// </summary>
-/// <param name="chara">当たり判定の領域</param>
-VOID CollUpdateGoal(CHARA* chara)
+VOID CollUpdate(CHARA* chara)
 {
 	chara->coll.left = chara->img.x;
 	chara->coll.top = chara->img.y;
