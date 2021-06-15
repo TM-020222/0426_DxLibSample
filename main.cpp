@@ -68,6 +68,9 @@ CHARA goal;
 //敵
 CHARA enemy;
 
+//コイン
+CHARA coin;
+
 //画像を読み込む
 IMAGE titlelogo;
 IMAGE titleenter;
@@ -83,7 +86,9 @@ AUDIO endBGM;
 AUDIO overBGM;
 
 //効果音
-AUDIO playerSE;
+AUDIO playerSE1;
+AUDIO playerSE2;
+AUDIO coinSE;
 
 //プレイ画面の背景
 MOVIE playmovie;
@@ -126,18 +131,27 @@ int EndOverCnt = 0;					//カウンタ
 const int EndOverCntMax = 60;		//カウンタMAX
 BOOL EndOverIn = FALSE;				//フェードインしたか
 
+//足音の再生の許可
+int playerSEcan = 0;						//1で1,2で2を再生
+
 //足跡の描画用関数
-int oldasiato = 0;
 int playerplaceX = 0;
 int playerplaceY = 0;
 
 //足跡のフェードアウト
-int asiatoCnt = 0;					//カウンタ
-const int asiatoCntMax = 30;		//カウンタMAX
-BOOL asiatoOut = FALSE;				//フェードアウトしたか
+int asiato1Cnt = 0;					//カウンタ
+const int asiato1CntMax = 30;		//カウンタMAX
+BOOL asiato1Out = FALSE;				//フェードアウトしたか
+
+int asiato2Cnt = 0;					//カウンタ
+const int asiato2CntMax = 30;		//カウンタMAX
+BOOL asiato2Out = FALSE;				//フェードアウトしたか
 
 //プレイ画面の時間経過
 float playtime = 0;
+
+//コインの獲得枚数
+int coinCnt = 0;
 
 //プロトタイプ宣言
 VOID Title(VOID);		//タイトル画面
@@ -170,6 +184,9 @@ BOOL LoadImg(IMAGE* image, const char* path);
 
 VOID GameInit(VOID);	//ゲームの初期化
 VOID TitleInit(VOID);	//タイトルの初期化
+
+VOID EnemyRandom(VOID);	//敵のリセット
+VOID CoinRandom(VOID);	//コインのリセット
 
 VOID CollUpdate(CHARA* chara);	//当たり判定の領域を更新
 
@@ -212,10 +229,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	{
 		return -1;			// エラーが起きたら直ちに終了
 	}
-	
-	//DrawPixel(320, 240, GetColor(255, 255, 255));	// 点を打つ
-
-	//WaitKey();				// キー入力待ち
 
 	SetDrawScreen(DX_SCREEN_BACK);
 
@@ -273,8 +286,28 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	}
 
 	if (!LoadAudio(
-		&playerSE,
-		".\\audio\\SE\\足音.mp4",
+		&playerSE1,
+		".\\audio\\SE\\足音1.mp4",
+		255,
+		DX_PLAYTYPE_BACK))
+	{
+		DxLib_End();
+		return -1;
+	}
+
+	if (!LoadAudio(
+		&playerSE2,
+		".\\audio\\SE\\足音2.mp4",
+		255,
+		DX_PLAYTYPE_BACK))
+	{
+		DxLib_End();
+		return -1;
+	}
+
+	if (!LoadAudio(
+		&coinSE,
+		".\\audio\\SE\\決定、ボタン押下3.mp3",
 		255,
 		DX_PLAYTYPE_BACK))
 	{
@@ -336,11 +369,21 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		return -1;
 	}
 
+	if (!LoadImg(&coin.img,".\\image\\coin.png"))
+	{
+		DxLib_End();
+		return -1;
+	}
+
 	//ゲームの初期化
 	GameInit();
 
 	//タイトルの初期化
 	TitleInit();
+
+	//ランダム化
+	EnemyRandom();
+	CoinRandom();
 
 	while (1)
 	{
@@ -424,7 +467,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	DeleteSoundMem(endBGM.handle);		//音楽をメモリ上から削除
 	DeleteSoundMem(overBGM.handle);		//音楽をメモリ上から削除
 
-	DeleteSoundMem(playerSE.handle);	//音楽をメモリ上から削除
+	DeleteSoundMem(playerSE1.handle);	//音楽をメモリ上から削除
+	DeleteSoundMem(playerSE2.handle);	//音楽をメモリ上から削除
+	DeleteSoundMem(coinSE.handle);	//音楽をメモリ上から削除
 
 	DxLib_End();				// ＤＸライブラリ使用の終了処理
 
@@ -556,17 +601,12 @@ VOID GameInit(VOID)
 	EndClearCnt = 0;
 	EndClearIn = FALSE;	//していない
 
-	//敵を初期化
-	enemy.img.x = rand() % (GAME_WIDTH - enemy.img.width);	//ランダム
-	enemy.img.y = rand() % (GAME_HEIGHT - enemy.img.height);//ランダム
-	enemy.img.IsDraw = TRUE;	//描画できる
-
 	//ゲームオーバーを初期化
 	endover.x = GAME_WIDTH / 2 - endover.width / 2;	//中央寄せ
 	endover.y = GAME_HEIGHT / 2 - endover.height / 2;	//ちょっと下
 
-	//足跡の初期化
-	oldasiato = 0;
+	//足音の初期化
+	int playerSEcan = 1;						//1で1,2で2を再生
 
 	//足跡1の初期化
 	asiato1.x = 0;
@@ -584,6 +624,29 @@ VOID GameInit(VOID)
 	//当たり判定を更新する
 	CollUpdate(&player);	//プレイヤーの当たり判定のアドレス
 	CollUpdate(&goal);	//ゴールの当たり判定のアドレス
+	CollUpdate(&enemy);	//敵の当たり判定のアドレス
+	CollUpdate(&coin);	//ゴールの当たり判定のアドレス
+}
+VOID EnemyRandom(VOID)
+{
+	srand((unsigned int)time(NULL) * 54321);
+	//敵を初期化
+	enemy.img.x = rand() % (GAME_WIDTH - enemy.img.width);	//ランダム
+	enemy.img.y = rand() % (GAME_HEIGHT - enemy.img.height);//ランダム
+	enemy.img.IsDraw = TRUE;	//描画できる
+
+	return;
+}
+
+VOID CoinRandom(VOID)
+{
+	srand((unsigned int)time(NULL) * 54321);
+	//コインを初期化
+	coin.img.x = rand() % (GAME_WIDTH - coin.img.width);	//ランダム
+	coin.img.y = rand() % (GAME_HEIGHT - coin.img.height);	//ランダム
+	coin.img.IsDraw = TRUE;	//描画できる
+
+	return;
 }
 
 /// <summary>
@@ -641,6 +704,9 @@ VOID TitleProc(VOID)
 
 		//ゲームの初期化
 		GameInit();
+
+		EnemyRandom();
+		CoinRandom();
 
 		//プレイ画面に切り替え
 		ChangeScene(GAME_SCENE_PLAY);
@@ -727,7 +793,8 @@ VOID PlayProc(VOID)
 	{
 		//BGMを止める
 		StopSoundMem(playBGM.handle);
-		StopSoundMem(playerSE.handle);
+		StopSoundMem(playerSE1.handle);
+		StopSoundMem(playerSE2.handle);
 
 		//シーンを切り替え
 		//次のシーンの初期化をここで行うと楽
@@ -743,21 +810,25 @@ VOID PlayProc(VOID)
 		player.img.y = player.img.y - player.speed * fps.DeltaTime;
 
 		//動くときの効果音を追加
-		//BGMが流れていないとき
-		if (CheckSoundMem(playerSE.handle) == 0)
+		//SEが流れていないとき
+		if (CheckSoundMem(playerSE1.handle) == 0 && CheckSoundMem(playerSE2.handle) == 0)
 		{
 			playerplaceX = player.img.x;	//プレイヤーのX座標を記録
 			playerplaceY = player.img.y;	//プレイヤーのY座標を記録
-			//BGMを流す
-			PlaySoundMem(playerSE.handle, playerSE.playtype);
-			asiatoOut = FALSE;				//フェードアウトしているか
-			if (oldasiato != 1)
+			//SEを流す
+			if (playerSEcan == 1)
 			{
-				//足跡1描画可能
+				PlaySoundMem(playerSE1.handle, playerSE1.playtype);
+				playerSEcan = 2;
+				asiato1Out = FALSE;				//フェードアウトしているか
+					//足跡1描画可能
 				asiato1.IsDraw = TRUE;
 			}
 			else
 			{
+				PlaySoundMem(playerSE2.handle, playerSE2.playtype);
+				playerSEcan = 1;
+				asiato2Out = FALSE;				//フェードアウトしているか
 				//足跡2描画可能
 				asiato2.IsDraw = TRUE;
 			}
@@ -768,21 +839,25 @@ VOID PlayProc(VOID)
 		player.img.y = player.img.y + player.speed * fps.DeltaTime;
 
 		//動くときの効果音を追加
-		//BGMが流れていないとき
-		if (CheckSoundMem(playerSE.handle) == 0)
+		//SEが流れていないとき
+		if (CheckSoundMem(playerSE1.handle) == 0 && CheckSoundMem(playerSE2.handle) == 0)
 		{
 			playerplaceX = player.img.x;	//プレイヤーのX座標を記録
 			playerplaceY = player.img.y;	//プレイヤーのY座標を記録
-			//BGMを流す
-			PlaySoundMem(playerSE.handle, playerSE.playtype);
-			asiatoOut = FALSE;				//フェードアウトしているか
-			if (oldasiato != 1)
+			//SEを流す
+			if (playerSEcan == 1)
 			{
-				//足跡1描画可能
+				PlaySoundMem(playerSE1.handle, playerSE1.playtype);
+				playerSEcan = 2;
+				asiato1Out = FALSE;				//フェードアウトしているか
+					//足跡1描画可能
 				asiato1.IsDraw = TRUE;
 			}
 			else
 			{
+				PlaySoundMem(playerSE2.handle, playerSE2.playtype);
+				playerSEcan = 1;
+				asiato2Out = FALSE;				//フェードアウトしているか
 				//足跡2描画可能
 				asiato2.IsDraw = TRUE;
 			}
@@ -793,21 +868,25 @@ VOID PlayProc(VOID)
 		player.img.x = player.img.x - player.speed * fps.DeltaTime;
 
 		//動くときの効果音を追加
-		//BGMが流れていないとき
-		if (CheckSoundMem(playerSE.handle) == 0)
+		//SEが流れていないとき
+		if (CheckSoundMem(playerSE1.handle) == 0 && CheckSoundMem(playerSE2.handle) == 0)
 		{
 			playerplaceX = player.img.x;	//プレイヤーのX座標を記録
 			playerplaceY = player.img.y;	//プレイヤーのY座標を記録
-			//BGMを流す
-			PlaySoundMem(playerSE.handle, playerSE.playtype);
-			asiatoOut = FALSE;				//フェードアウトしているか
-			if (oldasiato != 1)
+			//SEを流す
+			if (playerSEcan == 1)
 			{
-				//足跡1描画可能
+				PlaySoundMem(playerSE1.handle, playerSE1.playtype);
+				playerSEcan = 2;
+				asiato1Out = FALSE;				//フェードアウトしているか
+					//足跡1描画可能
 				asiato1.IsDraw = TRUE;
 			}
 			else
 			{
+				PlaySoundMem(playerSE2.handle, playerSE2.playtype);
+				playerSEcan = 1;
+				asiato2Out = FALSE;				//フェードアウトしているか
 				//足跡2描画可能
 				asiato2.IsDraw = TRUE;
 			}
@@ -818,21 +897,25 @@ VOID PlayProc(VOID)
 		player.img.x = player.img.x + player.speed * fps.DeltaTime;
 
 		//動くときの効果音を追加
-		//BGMが流れていないとき
-		if (CheckSoundMem(playerSE.handle) == 0)
+		//SEが流れていないとき
+		if (CheckSoundMem(playerSE1.handle) == 0 && CheckSoundMem(playerSE2.handle) == 0)
 		{
 			playerplaceX = player.img.x;	//プレイヤーのX座標を記録
 			playerplaceY = player.img.y;	//プレイヤーのY座標を記録
-			//BGMを流す
-			PlaySoundMem(playerSE.handle, playerSE.playtype);
-			asiatoOut = FALSE;				//フェードアウトしているか
-			if (oldasiato != 1)
+			//SEを流す
+			if (playerSEcan == 1)
 			{
-				//足跡1描画可能
+				PlaySoundMem(playerSE1.handle, playerSE1.playtype);
+				playerSEcan = 2;
+				asiato1Out = FALSE;				//フェードアウトしているか
+					//足跡1描画可能
 				asiato1.IsDraw = TRUE;
 			}
 			else
 			{
+				PlaySoundMem(playerSE2.handle, playerSE2.playtype);
+				playerSEcan = 1;
+				asiato2Out = FALSE;				//フェードアウトしているか
 				//足跡2描画可能
 				asiato2.IsDraw = TRUE;
 			}
@@ -843,6 +926,7 @@ VOID PlayProc(VOID)
 	CollUpdate(&player);
 	CollUpdate(&goal);
 	CollUpdate(&enemy);
+	CollUpdate(&coin);
 
 	//時間を処理
 	playtime += fps.DeltaTime;
@@ -851,7 +935,8 @@ VOID PlayProc(VOID)
 	{
 		//BGMを止める
 		StopSoundMem(playBGM.handle);
-		StopSoundMem(playerSE.handle);
+		StopSoundMem(playerSE1.handle);
+		StopSoundMem(playerSE2.handle);
 
 		ChangeScene(GAME_SCENE_END);					//エンド画面に切り替え
 		return;											//処理を強制終了
@@ -867,7 +952,8 @@ VOID PlayProc(VOID)
 	{
 		//BGMを止める
 		StopSoundMem(playBGM.handle);
-		StopSoundMem(playerSE.handle);
+		StopSoundMem(playerSE1.handle);
+		StopSoundMem(playerSE2.handle);
 
 		ChangeScene(GAME_SCENE_OVER);					//ゲームオーバー画面に切り替え
 		return;											//処理を強制終了
@@ -875,9 +961,38 @@ VOID PlayProc(VOID)
 	//押していないなら
 	else if (CubeCollision(player.coll, enemy.coll) == TRUE)
 	{
-		//初期化
-		GameInit();
+		//ランダム化
+		EnemyRandom();
 	}
+	//キーを押しているときかつ
+	if (CubeCollision(player.coll, coin.coll) == TRUE 
+		&& (KeyDown(KEY_INPUT_UP)
+		|| KeyDown(KEY_INPUT_DOWN)
+		|| KeyDown(KEY_INPUT_LEFT)
+		|| KeyDown(KEY_INPUT_RIGHT))
+		)	//プレイヤーがコインにあたったとき
+	{
+		coinCnt++;										//カウント
+		PlaySoundMem(coinSE.handle, coinSE.playtype);
+
+		//ランダム化
+		CoinRandom();
+
+		return;											//処理を強制終了
+	}
+	//押していないなら
+	else if (CubeCollision(player.coll, coin.coll) == TRUE){
+		//ランダム化
+		CoinRandom();}
+
+	//コインと敵が重なったら
+	if (CubeCollision(enemy.coll, coin.coll) == TRUE){
+		//ランダム化
+		CoinRandom();}
+	//コインとゴールが重なったら
+	if (CubeCollision(goal.coll, coin.coll) == TRUE){
+		//ランダム化
+		CoinRandom();}
 
 	//BGMが流れていないとき
 	if (CheckSoundMem(playBGM.handle) == 0)
@@ -949,14 +1064,30 @@ VOID PlayDraw(VOID)
 				GetColor(255, 0, 0), FALSE);
 		}
 	}
+
+	//コインを描画
+	if (coin.img.IsDraw == TRUE)
+	{
+		//画像を描画
+		DrawGraph(coin.img.x, coin.img.y, coin.img.handle, TRUE);
+
+		//デバッグの時は、当たり判定の領域を描画
+		if (GAME_DEBUG == TRUE)
+		{
+			//四角を描画
+			DrawBox(coin.coll.left, coin.coll.top, coin.coll.right, coin.coll.bottom,
+				GetColor(255, 0, 0), FALSE);
+		}
+	}
+
 	if (asiato1.IsDraw == TRUE)
 	{
 		//フェードイン
-		if (asiatoOut == FALSE && asiatoCntMax > asiatoCnt)
+		if (asiato1Out == FALSE && asiato1CntMax > asiato1Cnt)
 		{
 			//半透明
 			SetDrawBlendMode(DX_BLENDMODE_ALPHA,
-				((float)(asiatoCntMax - asiatoCnt) / asiatoCntMax) * 255);
+				((float)(asiato1CntMax - asiato1Cnt) / asiato1CntMax) * 255);
 		
 			DrawGraph(playerplaceX +(player.img.width/2)-asiato1.width, playerplaceY+player.img.height-asiato1.height/2,
 				asiato1.handle, TRUE);		//ロゴを描画
@@ -964,24 +1095,23 @@ VOID PlayDraw(VOID)
 			//半透明終了
 			SetDrawBlendMode(DX_BLENDMODE_NOBLEND, 0);
 		
-			asiatoCnt++;
+			asiato1Cnt++;
 		}
-		else if (asiatoCntMax <= asiatoCnt)
+		else if (asiato1CntMax <= asiato1Cnt)
 		{
-			asiatoOut = TRUE;	//完了
-			asiatoCnt = 0;
+			asiato1Out = TRUE;	//完了
+			asiato1Cnt = 0;
 			asiato1.IsDraw = FALSE;
-			oldasiato = 1;
 		}
 	}
 	if (asiato2.IsDraw == TRUE)
 	{
 		//フェードイン
-		if (asiatoOut == FALSE && asiatoCntMax > asiatoCnt)
+		if (asiato2Out == FALSE && asiato2CntMax > asiato2Cnt)
 		{
 			//半透明
 			SetDrawBlendMode(DX_BLENDMODE_ALPHA,
-				((float)(asiatoCntMax - asiatoCnt) / asiatoCntMax) * 255);
+				((float)(asiato2CntMax - asiato2Cnt) / asiato2CntMax) * 255);
 		
 			DrawGraph(playerplaceX+(player.img.width/2)+asiato2.width, playerplaceY+player.img.height - asiato2.height / 2,
 				asiato2.handle, TRUE);		//ロゴを描画
@@ -989,17 +1119,20 @@ VOID PlayDraw(VOID)
 			//半透明終了
 			SetDrawBlendMode(DX_BLENDMODE_NOBLEND, 0);
 		
-			asiatoCnt++;
+			asiato2Cnt++;
 		}
-		else if (asiatoCntMax <= asiatoCnt)
+		else if (asiato2CntMax <= asiato2Cnt)
 		{
-			asiatoOut = TRUE;	//完了
-			asiatoCnt = 0;
+			asiato2Out = TRUE;	//完了
+			asiato2Cnt = 0;
 			asiato2.IsDraw = FALSE;
-			oldasiato = 2;
 		}
 	}
 
+	//コインの枚数
+	DrawFormatString(0, GAME_HEIGHT - 60, GetColor(255, 255, 255), "%d枚", coinCnt);
+
+	//プレイ時間
 	DrawFormatString(0, GAME_HEIGHT - 40, GetColor(255,255,255),"%.2f秒",playtime);
 	DrawString(0, 0, "プレイ画面", GetColor(255, 255, 255));
 	return;
@@ -1052,6 +1185,9 @@ VOID EndProc(VOID)
 /// </summary>
 VOID EndDraw(VOID)
 {
+	//コインの枚数
+	DrawFormatString(0, GAME_HEIGHT - 40, GetColor(255, 255, 255), "集めたコインの枚数：%d枚", coinCnt);
+
 	DrawString(0, 0, "エンド画面", GetColor(0, 0, 0));
 	//フェードイン
 	if (EndClearIn == FALSE && EndClearCntMax > EndClearCnt)
@@ -1070,7 +1206,7 @@ VOID EndDraw(VOID)
 	}
 	else if (EndClearCntMax == EndClearCnt)
 	{
-		EndClearIn == TRUE;	//完了
+		EndClearIn == TRUE;				//完了
 		DrawGraph(endclear.x, endclear.y,
 			endclear.handle, TRUE);		//GameClearを描画
 	}

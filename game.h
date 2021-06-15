@@ -6,6 +6,7 @@
 #include "DxLib.h"		//DxLibを使うときに必要
 //#include "keyboard.h"	//キーボードの処理
 //#include "FPS.h"		//FPSの処理
+#include<time.h>
 
 #define GAME_TITLE			"ゲームタイトル"
 #define GAME_WIDTH			1280	//ゲーム画面の幅
