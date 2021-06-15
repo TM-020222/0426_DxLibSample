@@ -620,8 +620,8 @@ VOID GameInit(VOID)
 	EndClearIn = FALSE;	//していない
 
 	//敵を初期化
-	enemy.img.x = 0;			//左
-	enemy.img.y = enemy.img.height;			//ちょい上
+	enemy.img.x = rand() % (GAME_WIDTH - enemy.img.width);	//ランダム
+	enemy.img.y = rand() % (GAME_HEIGHT - enemy.img.height);//ランダム
 	enemy.img.IsDraw = TRUE;	//描画できる
 
 	//ゲームオーバーを初期化
@@ -912,7 +912,13 @@ VOID PlayProc(VOID)
 		return;											//処理を強制終了
 	}
 
-	if (CubeCollision(player.coll, enemy.coll) == TRUE)	//プレイヤーが敵にあたったとき
+	//キーを押しているときかつ
+	if (CubeCollision(player.coll, enemy.coll) == TRUE 
+		&& (KeyDown(KEY_INPUT_UP)
+		|| KeyDown(KEY_INPUT_DOWN)
+		|| KeyDown(KEY_INPUT_LEFT)
+		|| KeyDown(KEY_INPUT_RIGHT))
+		)	//プレイヤーが敵にあたったとき
 	{
 		//BGMを止める
 		StopSoundMem(playBGM.handle);
@@ -920,6 +926,12 @@ VOID PlayProc(VOID)
 
 		ChangeScene(GAME_SCENE_OVER);					//ゲームオーバー画面に切り替え
 		return;											//処理を強制終了
+	}
+	//押していないなら
+	else if (CubeCollision(player.coll, enemy.coll) == TRUE)
+	{
+		//初期化
+		GameInit();
 	}
 
 	//BGMが流れていないとき
