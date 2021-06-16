@@ -621,6 +621,12 @@ VOID GameInit(VOID)
 	//動画を初期化
 	playmovie.volume = 255;		//音量最大
 
+	//プレイ時間の初期化
+	playtime = 0;
+
+	//コインの枚数の初期化
+	coinCnt = 0;
+
 	//当たり判定を更新する
 	CollUpdate(&player);	//プレイヤーの当たり判定のアドレス
 	CollUpdate(&goal);	//ゴールの当たり判定のアドレス
@@ -1186,7 +1192,7 @@ VOID EndProc(VOID)
 VOID EndDraw(VOID)
 {
 	//コインの枚数
-	DrawFormatString(0, GAME_HEIGHT - 40, GetColor(255, 255, 255), "集めたコインの枚数：%d枚", coinCnt);
+	DrawFormatString(0, GAME_HEIGHT - 40, GetColor(0,0,0), "集めたコインの枚数：%d枚", coinCnt);
 
 	DrawString(0, 0, "エンド画面", GetColor(0, 0, 0));
 	//フェードイン
